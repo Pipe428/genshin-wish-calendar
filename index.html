@@ -41,7 +41,6 @@
           const saved = localStorage.getItem('genshin_wishes_db');
           return saved ? JSON.parse(saved) : [];
         } catch (e) {
-          console.error("Error al cargar localStorage", e);
           return [];
         }
       });
@@ -66,7 +65,7 @@
         try {
           localStorage.setItem('genshin_wishes_db', JSON.stringify(records));
         } catch (e) {
-          alert("¡Alerta! El almacenamiento local está lleno. Intenta usar iconos más ligeros o enlaces web.");
+          alert("Almacenamiento local lleno.");
         }
       }, [records]);
 
@@ -159,3 +158,37 @@
       });
 
       const filteredRecords = sortedRecords.filter(r => {
+        return filterElement === 'Todos' || r.element === filterElement;
+      });
+
+      const calculateDrought = () => {
+        if (records.length < 2) return null;
+        const chronological = [...records].map(r => ({
+          ...r,
+          dateObj: new Date(r.year, r.month, r.day)
+        })).sort((a, b) => a.dateObj - b.dateObj);
+
+        let maxDiffDays = 0;
+        let startDate = null;
+        let endDate = null;
+
+        for (let i = 0; i < chronological.length - 1; i++) {
+          const current = chronological[i].dateObj;
+          const next = chronological[i + 1].dateObj;
+          const diffTime = next - current;
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays > maxDiffDays) {
+            maxDiffDays = diffDays;
+            startDate = chronological[i];
+            endDate = chronological[i + 1];
+          }
+        }
+        return { maxDiffDays, startDate, endDate };
+      };
+
+      const droughtInfo = calculateDrought();
+
+      const monthCounts = {};
+      records.forEach(r => { monthCounts[r.month] = (monthCounts[r.month] || 0) + 1; });
+      let bestMonthIndex = null;
