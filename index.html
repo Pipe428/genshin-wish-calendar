@@ -10,9 +10,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background-color: #0b0e14; color: #e2e8f0; font-family: sans-serif; }
-    .gold-glow { box-shadow: 0 0 12px rgba(234, 179, 8, 0.6); }
-    .purple-glow { box-shadow: 0 0 12px rgba(168, 85, 247, 0.6); }
+    body { background-color: #0b0e14; color: #e2e8f0; font-family: sans-serif; background-size: cover; background-position: center; background-attachment: fixed; }
+    .gold-glow { box-shadow: 0 0 14px rgba(234, 179, 8, 0.7); }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
@@ -42,17 +41,19 @@
         return saved ? JSON.parse(saved) : [];
       });
 
+      const [bgImage, setBgImage] = useState(() => {
+        return localStorage.getItem('genshin_bg_url') || '';
+      });
+
       const [selectedMonth, setSelectedMonth] = useState(10);
       const [selectedDay, setSelectedDay] = useState(null);
       const [activeTab, setActiveTab] = useState('calendar');
 
       const [filterElement, setFilterElement] = useState('Todos');
-      const [filterRarity, setFilterRarity] = useState('Todas');
 
-      // Form states
+      // Form states (Rareza fija en 5 estrellas)
       const [editingId, setEditingId] = useState(null);
       const [formName, setFormName] = useState('');
-      const [formRarity, setFormRarity] = useState(5);
       const [formElement, setFormElement] = useState('Anemo');
       const [formConstellation, setFormConstellation] = useState(0);
       const [formNotes, setFormNotes] = useState('');
@@ -62,6 +63,15 @@
       useEffect(() => {
         localStorage.setItem('genshin_wishes_db', JSON.stringify(records));
       }, [records]);
+
+      useEffect(() => {
+        localStorage.setItem('genshin_bg_url', bgImage);
+        if (bgImage) {
+          document.body.style.backgroundImage = `linear-gradient(rgba(11, 14, 20, 0.85), rgba(11, 14, 20, 0.85)), url('${bgImage}')`;
+        } else {
+          document.body.style.backgroundImage = 'none';
+        }
+      }, [bgImage]);
 
       const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -77,11 +87,10 @@
         if (!formName.trim() || selectedDay === null) return;
 
         if (editingId) {
-          // Editar registro existente
           setRecords(prev => prev.map(r => r.id === editingId ? {
             ...r,
             name: formName,
-            rarity: Number(formRarity),
+            rarity: 5, // Siempre 5 estrellas
             element: formElement,
             constellation: Number(formConstellation),
             notes: formNotes,
@@ -90,11 +99,10 @@
           } : r));
           setEditingId(null);
         } else {
-          // Crear nuevo registro
           const newEntry = {
             id: Date.now().toString(),
             name: formName,
-            rarity: Number(formRarity),
+            rarity: 5, // Siempre 5 estrellas
             element: formElement,
             constellation: Number(formConstellation),
             notes: formNotes,
@@ -106,17 +114,17 @@
           setRecords(prev => [...prev, newEntry]);
         }
 
-        // Limpiar formulario
+        // Limpiar y cerrar modal automáticamente
         setFormName('');
         setFormNotes('');
         setFormImage('');
         setFormConstellation(0);
+        setSelectedDay(null);
       };
 
       const handleEditClick = (rec) => {
         setEditingId(rec.id);
         setFormName(rec.name);
-        setFormRarity(rec.rarity);
         setFormElement(rec.element);
         setFormConstellation(rec.constellation || 0);
         setFormNotes(rec.notes || '');
@@ -151,9 +159,7 @@
       });
 
       const filteredRecords = sortedRecords.filter(r => {
-        const matchElement = filterElement === 'Todos' || r.element === filterElement;
-        const matchRarity = filterRarity === 'Todas' || r.rarity === Number(filterRarity);
-        return matchElement && matchRarity;
+        return filterElement === 'Todos' || r.element === filterElement;
       });
 
       const calculateDrought = () => {
@@ -197,439 +203,4 @@
 
       const constCounts = {};
       records.forEach(r => {
-        const c = r.constellation || 0;
-        constCounts[c] = (constCounts[c] || 0) + 1;
-      });
-
-      return (
-        <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-          
-          {/* Barra Superior: Últimos Personajes Agregados */}
-          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                <i className="fa-solid fa-clock-rotate-left"></i> Últimos Personajes Agregados
-              </span>
-              <span className="text-[10px] text-slate-500">Desliza para ver más ➔</span>
-            </div>
-            
-            {sortedRecords.length === 0 ? (
-              <p className="text-xs text-slate-500 italic py-1">Aún no hay personajes registrados en el sistema.</p>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
-                {sortedRecords.slice(0, 10).map(rec => (
-                  <div 
-                    key={rec.id}
-                    className="flex items-center gap-2.5 bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl whitespace-nowrap shrink-0"
-                  >
-                    <img src={rec.image} className="w-8 h-8 rounded-lg object-cover bg-slate-900 border border-slate-700" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-200">
-                        {rec.name} <span className={rec.rarity === 5 ? 'text-amber-400' : 'text-purple-400'}>{rec.rarity}★</span>
-                        {rec.constellation > 0 && <span className="text-purple-300 ml-1">C{rec.constellation}</span>}
-                      </p>
-                      <p className="text-[10px] text-amber-400/80 font-medium">{rec.day} de {MONTHS[rec.month]} de {rec.year}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Header Principal */}
-          <header className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
-            <div className="flex items-center gap-3">
-              <i className="fa-solid fa-calendar-star text-amber-400 text-3xl"></i>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
-                  Genshin Wish Tracker
-                </h1>
-                <p className="text-sm text-slate-400">Histórico de Personajes Obtenidos</p>
-              </div>
-            </div>
-
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
-              <button 
-                onClick={() => setActiveTab('calendar')}
-                className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'calendar' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
-              >
-                <i className="fa-solid fa-calendar-days mr-2"></i>Calendario
-              </button>
-              <button 
-                onClick={() => setActiveTab('stats')}
-                className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'stats' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
-              >
-                <i className="fa-solid fa-chart-pie mr-2"></i>Histórico & Stats
-              </button>
-            </div>
-          </header>
-
-          {/* Tab: Calendar */}
-          {activeTab === 'calendar' && (
-            <main className="space-y-4">
-              <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                <button 
-                  onClick={() => setSelectedMonth(prev => (prev === 0 ? 11 : prev - 1))}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium"
-                >
-                  <i className="fa-solid fa-chevron-left mr-1"></i> Anterior
-                </button>
-                <h2 className="text-xl font-bold text-amber-300">
-                  {MONTHS[selectedMonth]} <span className="text-xs text-slate-400 font-normal">(Todos los años)</span>
-                </h2>
-                <button 
-                  onClick={() => setSelectedMonth(prev => (prev === 11 ? 0 : prev + 1))}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium"
-                >
-                  Siguiente <i className="fa-solid fa-chevron-right ml-1"></i>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
-                  const dayRecords = getRecordsForDay(day);
-                  return (
-                    <div 
-                      key={day}
-                      onClick={() => openDayModal(day)}
-                      className="bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800 hover:border-amber-500/50 rounded-xl p-3 min-h-[140px] cursor-pointer transition flex flex-col justify-between"
-                    >
-                      <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-2">
-                        <span className="text-sm text-slate-300">Día {day}</span>
-                        {dayRecords.length > 0 && (
-                          <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full text-[10px]">
-                            {dayRecords.length}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 items-center justify-center py-1">
-                        {dayRecords.map(rec => (
-                          <div 
-                            key={rec.id}
-                            className={`relative w-14 h-14 rounded-xl overflow-hidden border-2 transition transform hover:scale-110 ${rec.rarity === 5 ? 'border-amber-400 gold-glow' : 'border-purple-400 purple-glow'}`}
-                            title={`${rec.name} (${rec.element} - C${rec.constellation || 0} - ${rec.year})`}
-                          >
-                            <img src={rec.image} alt={rec.name} className="w-full h-full object-cover" />
-                            <div className="absolute bottom-0 inset-x-0 bg-slate-950/80 flex justify-between px-1 text-[9px] font-bold">
-                              <span className="text-amber-300">'{rec.year.toString().slice(-2)}</span>
-                              {rec.constellation > 0 && <span className="text-purple-300">C{rec.constellation}</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </main>
-          )}
-
-          {/* Tab: Stats & Full List */}
-          {activeTab === 'stats' && (
-            <main className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
-                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Total Registrados</p>
-                  <p className="text-3xl font-extrabold text-amber-400">{records.length}</p>
-                </div>
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
-                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Personajes 5★</p>
-                  <p className="text-3xl font-extrabold text-amber-300">
-                    {records.filter(r => r.rarity === 5).length}
-                  </p>
-                </div>
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
-                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Personajes 4★</p>
-                  <p className="text-3xl font-extrabold text-purple-400">
-                    {records.filter(r => r.rarity === 4).length}
-                  </p>
-                </div>
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
-                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Mes con Más Suerte</p>
-                  <p className="text-lg font-bold text-amber-400">
-                    {bestMonthIndex !== null ? MONTHS[bestMonthIndex] : 'N/A'}
-                  </p>
-                  {bestMonthIndex !== null && (
-                    <p className="text-[10px] text-slate-400">{maxMonthCount} obtenidos en total</p>
-                  )}
-                </div>
-              </div>
-
-              {droughtInfo && droughtInfo.maxDiffDays > 0 && (
-                <div className="bg-slate-900/80 border border-amber-500/30 p-5 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 text-xl font-bold">
-                      <i className="fa-solid fa-hourglass-half"></i>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300 uppercase">Mayor Racha de Sequía</h4>
-                      <p className="text-2xl font-extrabold text-amber-400">
-                        {droughtInfo.maxDiffDays} días sin personajes
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-6">
-                    <p className="text-xs text-slate-400">Rango de Fechas Exacto:</p>
-                    <p className="text-sm font-semibold text-slate-200">
-                      Del {droughtInfo.startDate.day} de {MONTHS[droughtInfo.startDate.month]} de {droughtInfo.startDate.year} 
-                      <span className="text-amber-400 mx-2 font-bold">➔</span> 
-                      al {droughtInfo.endDate.day} de {MONTHS[droughtInfo.endDate.month]} de {droughtInfo.endDate.year}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
-                  <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Distribución por Elementos</h4>
-                  {ELEMENTS.map(el => {
-                    const count = records.filter(r => r.element === el).length;
-                    const pct = records.length > 0 ? ((count / records.length) * 100).toFixed(0) : 0;
-                    return (
-                      <div key={el} className="space-y-1">
-                        <div className="flex justify-between text-xs font-semibold">
-                          <span className="text-slate-300">{el}</span>
-                          <span className="text-slate-400">{count} ({pct}%)</span>
-                        </div>
-                        <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-                          <div className="bg-amber-400 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
-                  <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Personajes por Año</h4>
-                  {Object.keys(yearCounts).length === 0 ? (
-                    <p className="text-xs text-slate-500 italic">No hay datos suficientes aún.</p>
-                  ) : (
-                    Object.entries(yearCounts).sort((a,b) => b[0] - a[0]).map(([yr, count]) => (
-                      <div key={yr} className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
-                        <span className="font-bold text-amber-300 text-sm">Año {yr}</span>
-                        <span className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-bold">
-                          {count} obtenidos
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
-                  <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Nivel de Constelaciones</h4>
-                  {Object.keys(constCounts).length === 0 ? (
-                    <p className="text-xs text-slate-500 italic">No hay constelaciones registradas.</p>
-                  ) : (
-                    Object.entries(constCounts).sort((a,b) => a[0] - b[0]).map(([c, count]) => (
-                      <div key={c} className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
-                        <span className="font-bold text-purple-300 text-sm">Constelación C{c}</span>
-                        <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-xs font-bold">
-                          {count} personajes
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <h3 className="text-lg font-bold text-amber-300">Histórico de Personajes Guardados</h3>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <select 
-                      value={filterElement} 
-                      onChange={e => setFilterElement(e.target.value)}
-                      className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium"
-                    >
-                      <option value="Todos">Todos los Elementos</option>
-                      {ELEMENTS.map(el => <option key={el} value={el}>{el}</option>)}
-                    </select>
-
-                    <select 
-                      value={filterRarity} 
-                      onChange={e => setFilterRarity(e.target.value)}
-                      className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium"
-                    >
-                      <option value="Todas">Todas las Rarezas</option>
-                      <option value="5">5 Estrellas (5★)</option>
-                      <option value="4">4 Estrellas (4★)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {filteredRecords.length === 0 ? (
-                  <p className="text-slate-500 text-sm text-center py-8">No se encontraron registros con esos filtros.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {filteredRecords.map(rec => (
-                      <div 
-                        key={rec.id}
-                        className={`p-4 rounded-xl border bg-slate-950 flex items-center gap-3 relative ${rec.rarity === 5 ? 'border-amber-500/50 gold-glow' : 'border-purple-500/50 purple-glow'}`}
-                      >
-                        <img src={rec.image} className="w-14 h-14 rounded-xl object-cover bg-slate-800 border border-slate-700" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm truncate">{rec.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold ${ELEMENT_COLORS[rec.element] || 'bg-slate-800 text-slate-300'}`}>
-                              {rec.element}
-                            </span>
-                            <span className={`text-xs font-bold ${rec.rarity === 5 ? 'text-amber-400' : 'text-purple-400'}`}>
-                              {rec.rarity}★
-                            </span>
-                            <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded font-bold">
-                              C{rec.constellation || 0}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-amber-400/90 font-medium mt-1.5">
-                            {rec.day} de {MONTHS[rec.month]} de {rec.year}
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <button onClick={() => { setSelectedDay(rec.day); setSelectedMonth(rec.month); handleEditClick(rec); }} className="text-slate-400 hover:text-amber-300 text-xs p-1" title="Editar">
-                            <i className="fa-solid fa-pen"></i>
-                          </button>
-                          <button onClick={() => handleDelete(rec.id)} className="text-slate-500 hover:text-red-400 text-xs p-1" title="Eliminar">
-                            <i className="fa-solid fa-trash"></i>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </main>
-          )}
-
-          {/* Modal del Día */}
-          {selectedDay !== null && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
-                  <h3 className="text-lg font-bold text-amber-300">
-                    Historial del {selectedDay} de {MONTHS[selectedMonth]}
-                  </h3>
-                  <button onClick={() => { setSelectedDay(null); setEditingId(null); }} className="text-slate-400 hover:text-white">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-
-                {/* Formulario */}
-                <form onSubmit={handleSaveRecord} className="space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-sm font-bold text-amber-400">
-                      {editingId ? 'Editar Personaje' : 'Nuevo Registro'}
-                    </h4>
-                    {editingId && (
-                      <button 
-                        type="button" 
-                        onClick={() => { setEditingId(null); setFormName(''); setFormNotes(''); setFormImage(''); setFormConstellation(0); }}
-                        className="text-xs text-slate-400 hover:text-white underline"
-                      >
-                        Cancelar edición
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Año</label>
-                      <select value={formYear} onChange={e => setFormYear(Number(e.target.value))} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full">
-                        {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Nombre</label>
-                      <input type="text" placeholder="Ej: Kazuha" value={formName} onChange={e => setFormName(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full" required/>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Rareza</label>
-                      <select value={formRarity} onChange={e => setFormRarity(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full">
-                        <option value={5}>5 Estrellas (5★)</option>
-                        <option value={4}>4 Estrellas (4★)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-amber-400 font-bold block mb-1">Elemento</label>
-                      <select value={formElement} onChange={e => setFormElement(e.target.value)} className="bg-slate-900 border border-amber-500/50 rounded-lg p-2.5 text-xs font-semibold w-full text-amber-300">
-                        {ELEMENTS.map(el => <option key={el} value={el}>{el}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-purple-400 font-bold block mb-1">Constelación</label>
-                      <select value={formConstellation} onChange={e => setFormConstellation(e.target.value)} className="bg-slate-900 border border-purple-500/50 rounded-lg p-2.5 text-xs font-semibold w-full text-purple-300">
-                        <option value={0}>C0 (Base)</option>
-                        <option value={1}>C1</option>
-                        <option value={2}>C2</option>
-                        <option value={3}>C3</option>
-                        <option value={4}>C4</option>
-                        <option value={5}>C5</option>
-                        <option value={6}>C6</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-1">
-                    <div className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
-                      {formImage ? <img src={formImage} className="w-full h-full object-cover" /> : <i className="fa-solid fa-image text-slate-600"></i>}
-                    </div>
-                    <label className="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg p-3 text-xs text-center cursor-pointer font-medium">
-                      <i className="fa-solid fa-upload mr-2 text-amber-400"></i>Subir Imagen PC
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    </label>
-                  </div>
-
-                  <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-lg text-xs transition uppercase tracking-wider">
-                    {editingId ? 'Actualizar Personaje' : 'Registrar Personaje'}
-                  </button>
-                </form>
-
-                {/* Lista de Registros de esa fecha */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase text-slate-400">Obtenidos en esta fecha:</h4>
-                  {getRecordsForDay(selectedDay).length === 0 ? (
-                    <p className="text-xs text-slate-500 italic">No hay registros guardados para el {selectedDay} de {MONTHS[selectedMonth]}.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {getRecordsForDay(selectedDay).map(rec => (
-                        <div key={rec.id} className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
-                          <div className="flex items-center gap-3">
-                            <img src={rec.image} className="w-12 h-12 rounded-xl object-cover bg-slate-800" />
-                            <div>
-                              <p className="text-xs font-bold">
-                                {rec.name} <span className="text-amber-400 font-normal">({rec.year})</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {rec.element} • {rec.rarity}★ <span className="text-purple-300 font-semibold">• C{rec.constellation || 0}</span>
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => handleEditClick(rec)} className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
-                              <i className="fa-solid fa-pen text-[10px]"></i> Editar
-                            </button>
-                            <button onClick={() => handleDelete(rec.id)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
-                              <i className="fa-solid fa-trash text-[10px]"></i>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-      );
-    }
-
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
-</body>
-</html>
+        const c = r.
