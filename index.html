@@ -190,5 +190,5 @@
       const droughtInfo = calculateDrought();
 
       const monthCounts = {};
-      records.forEach(r => { monthCounts[r.month] = (monthCounts[r.month] || 0) + 1; });
-      let bestMonthIndex = null;
+      records.forEach(r => {
+        monthCounts[r.month] = (monthCounts[r.month] || 0) +
