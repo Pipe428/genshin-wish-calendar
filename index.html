@@ -161,34 +161,63 @@
         return filterElement === 'Todos' || r.element === filterElement;
       });
 
-      const calculateDrought = () => {
-        if (records.length < 2) return null;
-        const chronological = [...records].map(r => ({
-          ...r,
-          dateObj: new Date(r.year, r.month, r.day)
-        })).sort((a, b) => a.dateObj - b.dateObj);
+      return (
+        <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+          <header className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-md p-6 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-3">
+              <i className="fa-solid fa-calendar-star text-amber-400 text-3xl"></i>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
+                  Genshin 5★ Wish Tracker
+                </h1>
+                <p className="text-sm text-slate-400">Histórico exclusivo de Personajes 5 Estrellas</p>
+              </div>
+            </div>
 
-        let maxDiffDays = 0;
-        let startDate = null;
-        let endDate = null;
+            <div className="flex flex-wrap items-center gap-3">
+              <button 
+                onClick={() => {
+                  const url = prompt('Ingresa la URL de la imagen de fondo:', bgImage);
+                  if (url !== null) setBgImage(url);
+                }}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition"
+              >
+                <i className="fa-solid fa-image mr-1 text-amber-400"></i> Fondo
+              </button>
 
-        for (let i = 0; i < chronological.length - 1; i++) {
-          const current = chronological[i].dateObj;
-          const next = chronological[i + 1].dateObj;
-          const diffTime = next - current;
-          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button 
+                  onClick={() => setActiveTab('calendar')}
+                  className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'calendar' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+                >
+                  <i className="fa-solid fa-calendar-days mr-2"></i>Calendario
+                </button>
+                <button 
+                  onClick={() => setActiveTab('stats')}
+                  className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'stats' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+                >
+                  <i className="fa-solid fa-chart-pie mr-2"></i>Histórico & Stats
+                </button>
+              </div>
+            </div>
+          </header>
 
-          if (diffDays > maxDiffDays) {
-            maxDiffDays = diffDays;
-            startDate = chronological[i];
-            endDate = chronological[i + 1];
-          }
-        }
-        return { maxDiffDays, startDate, endDate };
-      };
-
-      const droughtInfo = calculateDrought();
-
-      const monthCounts = {};
-      records.forEach(r => {
-        monthCounts[r.month] = (monthCounts[r.month] || 0) +
+          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow-lg backdrop-blur-md">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                <i className="fa-solid fa-clock-rotate-left"></i> Últimos 5★ Agregados
+              </span>
+            </div>
+            {sortedRecords.length === 0 ? (
+              <p className="text-xs text-slate-500 italic py-1">Aún no hay personajes 5★ registrados.</p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
+                {sortedRecords.slice(0, 10).map(rec => (
+                  <div key={rec.id} className="flex items-center gap-2.5 bg-slate-950 border border-amber-500/40 px-3 py-2 rounded-xl whitespace-nowrap shrink-0 gold-glow">
+                    <img src={rec.image} className="w-8 h-8 rounded-lg object-cover bg-slate-900 border border-amber-500" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-200">
+                        {rec.name} <span className="text-amber-400">5★</span>
+                        {rec.constellation > 0 && <span className="text-purple-300 ml-1">C{rec.constellation}</span>}
+                      </p>
+                      <p className="text-[10px] text-amber-400/80 font-medium">{rec.day} de {MONTHS[rec.month]}
