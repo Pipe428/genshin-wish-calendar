@@ -13,7 +13,6 @@
     body { background-color: #0b0e14; color: #e2e8f0; font-family: sans-serif; }
     .gold-glow { box-shadow: 0 0 12px rgba(234, 179, 8, 0.6); }
     .purple-glow { box-shadow: 0 0 12px rgba(168, 85, 247, 0.6); }
-    /* Estilo para la barra deslizante de últimos personajes */
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
@@ -37,16 +36,6 @@
       Cryo: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
     };
 
-    const PRESET_CHARS = [
-      { name: 'Raiden Shogun', rarity: 5, element: 'Electro', icon: 'https://api.iconify.design/gi:lightning-trio.svg' },
-      { name: 'Furina', rarity: 5, element: 'Hydro', icon: 'https://api.iconify.design/gi:water-drop.svg' },
-      { name: 'Nahida', rarity: 5, element: 'Dendro', icon: 'https://api.iconify.design/gi:clover.svg' },
-      { name: 'Zhongli', rarity: 5, element: 'Geo', icon: 'https://api.iconify.design/gi:stone-block.svg' },
-      { name: 'Kazuha', rarity: 5, element: 'Anemo', icon: 'https://api.iconify.design/gi:wind-hole.svg' },
-      { name: 'Hu Tao', rarity: 5, element: 'Pyro', icon: 'https://api.iconify.design/gi:flame.svg' },
-      { name: 'Neuvillette', rarity: 5, element: 'Hydro', icon: 'https://api.iconify.design/gi:water-drop.svg' }
-    ];
-
     function App() {
       const [records, setRecords] = useState(() => {
         const saved = localStorage.getItem('genshin_wishes_db');
@@ -61,13 +50,12 @@
       const [filterRarity, setFilterRarity] = useState('Todas');
 
       // Form states
+      const [editingId, setEditingId] = useState(null);
       const [formName, setFormName] = useState('');
       const [formRarity, setFormRarity] = useState(5);
       const [formElement, setFormElement] = useState('Anemo');
       const [formConstellation, setFormConstellation] = useState(0);
       const [formNotes, setFormNotes] = useState('');
-      const [formDay, setFormDay] = useState(1);
-      const [formMonth, setFormMonth] = useState(10);
       const [formYear, setFormYear] = useState(2026);
       const [formImage, setFormImage] = useState('');
 
@@ -84,46 +72,78 @@
         }
       };
 
-      const handleAddRecord = (e) => {
+      const handleSaveRecord = (e) => {
         e.preventDefault();
-        if (!formName.trim()) return;
+        if (!formName.trim() || selectedDay === null) return;
 
-        const newEntry = {
-          id: Date.now().toString(),
-          name: formName,
-          rarity: Number(formRarity),
-          element: formElement,
-          constellation: Number(formConstellation),
-          notes: formNotes,
-          day: Number(formDay),
-          month: Number(formMonth),
-          year: Number(formYear),
-          image: formImage || 'https://api.iconify.design/gi:sparkles.svg'
-        };
+        if (editingId) {
+          // Editar registro existente
+          setRecords(prev => prev.map(r => r.id === editingId ? {
+            ...r,
+            name: formName,
+            rarity: Number(formRarity),
+            element: formElement,
+            constellation: Number(formConstellation),
+            notes: formNotes,
+            year: Number(formYear),
+            image: formImage || r.image
+          } : r));
+          setEditingId(null);
+        } else {
+          // Crear nuevo registro
+          const newEntry = {
+            id: Date.now().toString(),
+            name: formName,
+            rarity: Number(formRarity),
+            element: formElement,
+            constellation: Number(formConstellation),
+            notes: formNotes,
+            day: Number(selectedDay),
+            month: Number(selectedMonth),
+            year: Number(formYear),
+            image: formImage || 'https://api.iconify.design/gi:sparkles.svg'
+          };
+          setRecords(prev => [...prev, newEntry]);
+        }
 
-        setRecords(prev => [...prev, newEntry]);
+        // Limpiar formulario
         setFormName('');
         setFormNotes('');
         setFormImage('');
+        setFormConstellation(0);
+      };
+
+      const handleEditClick = (rec) => {
+        setEditingId(rec.id);
+        setFormName(rec.name);
+        setFormRarity(rec.rarity);
+        setFormElement(rec.element);
+        setFormConstellation(rec.constellation || 0);
+        setFormNotes(rec.notes || '');
+        setFormYear(rec.year);
+        setFormImage(rec.image);
       };
 
       const handleDelete = (id) => {
         if (confirm('¿Seguro que deseas eliminar este registro?')) {
           setRecords(prev => prev.filter(r => r.id !== id));
+          if (editingId === id) setEditingId(null);
         }
       };
 
       const openDayModal = (day) => {
         setSelectedDay(day);
-        setFormDay(day);
-        setFormMonth(selectedMonth);
+        setEditingId(null);
+        setFormName('');
+        setFormNotes('');
+        setFormImage('');
+        setFormConstellation(0);
       };
 
       const getRecordsForDay = (day) => {
         return records.filter(r => r.day === day && r.month === selectedMonth);
       };
 
-      // Ordenar registros por fecha (Año -> Mes -> Día) Descendente
       const sortedRecords = [...records].sort((a, b) => {
         if (b.year !== a.year) return b.year - a.year;
         if (b.month !== a.month) return b.month - a.month;
@@ -136,7 +156,6 @@
         return matchElement && matchRarity;
       });
 
-      // Cálculo de mayor sequía con rango de fechas
       const calculateDrought = () => {
         if (records.length < 2) return null;
         const chronological = [...records].map(r => ({
@@ -165,7 +184,6 @@
 
       const droughtInfo = calculateDrought();
 
-      // Mes con más suerte
       const monthCounts = {};
       records.forEach(r => { monthCounts[r.month] = (monthCounts[r.month] || 0) + 1; });
       let bestMonthIndex = null;
@@ -174,11 +192,9 @@
         if (count > maxMonthCount) { maxMonthCount = count; bestMonthIndex = Number(m); }
       });
 
-      // Conteo por Año
       const yearCounts = {};
       records.forEach(r => { yearCounts[r.year] = (yearCounts[r.year] || 0) + 1; });
 
-      // Conteo de Constelaciones
       const constCounts = {};
       records.forEach(r => {
         const c = r.constellation || 0;
@@ -188,7 +204,7 @@
       return (
         <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6">
           
-          {/* BARRA SUPERIOR: Últimos Personajes Agregados */}
+          {/* Barra Superior: Últimos Personajes Agregados */}
           <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow-lg">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
@@ -208,7 +224,10 @@
                   >
                     <img src={rec.image} className="w-8 h-8 rounded-lg object-cover bg-slate-900 border border-slate-700" />
                     <div>
-                      <p className="text-xs font-bold text-slate-200">{rec.name} <span className={rec.rarity === 5 ? 'text-amber-400' : 'text-purple-400'}>{rec.rarity}★</span></p>
+                      <p className="text-xs font-bold text-slate-200">
+                        {rec.name} <span className={rec.rarity === 5 ? 'text-amber-400' : 'text-purple-400'}>{rec.rarity}★</span>
+                        {rec.constellation > 0 && <span className="text-purple-300 ml-1">C{rec.constellation}</span>}
+                      </p>
                       <p className="text-[10px] text-amber-400/80 font-medium">{rec.day} de {MONTHS[rec.month]} de {rec.year}</p>
                     </div>
                   </div>
@@ -266,7 +285,6 @@
                 </button>
               </div>
 
-              {/* Grilla Calendario */}
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
                   const dayRecords = getRecordsForDay(day);
@@ -290,12 +308,13 @@
                           <div 
                             key={rec.id}
                             className={`relative w-14 h-14 rounded-xl overflow-hidden border-2 transition transform hover:scale-110 ${rec.rarity === 5 ? 'border-amber-400 gold-glow' : 'border-purple-400 purple-glow'}`}
-                            title={`${rec.name} (${rec.element} - ${rec.year})`}
+                            title={`${rec.name} (${rec.element} - C${rec.constellation || 0} - ${rec.year})`}
                           >
                             <img src={rec.image} alt={rec.name} className="w-full h-full object-cover" />
-                            <span className="absolute bottom-0 right-0 bg-slate-950/90 text-[9px] px-1 font-bold text-amber-300">
-                              '{rec.year.toString().slice(-2)}
-                            </span>
+                            <div className="absolute bottom-0 inset-x-0 bg-slate-950/80 flex justify-between px-1 text-[9px] font-bold">
+                              <span className="text-amber-300">'{rec.year.toString().slice(-2)}</span>
+                              {rec.constellation > 0 && <span className="text-purple-300">C{rec.constellation}</span>}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -309,7 +328,6 @@
           {/* Tab: Stats & Full List */}
           {activeTab === 'stats' && (
             <main className="space-y-6">
-              {/* Tarjetas Principales */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
                   <p className="text-slate-400 text-xs uppercase font-bold mb-1">Total Registrados</p>
@@ -338,7 +356,6 @@
                 </div>
               </div>
 
-              {/* Récord de Sequía con Rango Exacto */}
               {droughtInfo && droughtInfo.maxDiffDays > 0 && (
                 <div className="bg-slate-900/80 border border-amber-500/30 p-5 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
@@ -363,10 +380,7 @@
                 </div>
               )}
 
-              {/* Métricas Avanzadas: Distribución por Elemento, Años y Constelaciones */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                {/* 1. Distribución por Elementos */}
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
                   <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Distribución por Elementos</h4>
                   {ELEMENTS.map(el => {
@@ -386,7 +400,6 @@
                   })}
                 </div>
 
-                {/* 2. Obtenciones por Año */}
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
                   <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Personajes por Año</h4>
                   {Object.keys(yearCounts).length === 0 ? (
@@ -403,7 +416,6 @@
                   )}
                 </div>
 
-                {/* 3. Nivel de Constelaciones */}
                 <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
                   <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Nivel de Constelaciones</h4>
                   {Object.keys(constCounts).length === 0 ? (
@@ -419,10 +431,8 @@
                     ))
                   )}
                 </div>
-
               </div>
 
-              {/* Filtros de Búsqueda y Histórico Completo */}
               <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-4">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <h3 className="text-lg font-bold text-amber-300">Histórico de Personajes Guardados</h3>
@@ -468,19 +478,22 @@
                             <span className={`text-xs font-bold ${rec.rarity === 5 ? 'text-amber-400' : 'text-purple-400'}`}>
                               {rec.rarity}★
                             </span>
-                            {rec.constellation > 0 && (
-                              <span className="text-[10px] bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-bold">
-                                C{rec.constellation}
-                              </span>
-                            )}
+                            <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded font-bold">
+                              C{rec.constellation || 0}
+                            </span>
                           </div>
                           <p className="text-[10px] text-amber-400/90 font-medium mt-1.5">
                             {rec.day} de {MONTHS[rec.month]} de {rec.year}
                           </p>
                         </div>
-                        <button onClick={() => handleDelete(rec.id)} className="text-slate-500 hover:text-red-400 text-xs p-1">
-                          <i className="fa-solid fa-trash"></i>
-                        </button>
+                        <div className="flex flex-col gap-1">
+                          <button onClick={() => { setSelectedDay(rec.day); setSelectedMonth(rec.month); handleEditClick(rec); }} className="text-slate-400 hover:text-amber-300 text-xs p-1" title="Editar">
+                            <i className="fa-solid fa-pen"></i>
+                          </button>
+                          <button onClick={() => handleDelete(rec.id)} className="text-slate-500 hover:text-red-400 text-xs p-1" title="Eliminar">
+                            <i className="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -497,62 +510,47 @@
                   <h3 className="text-lg font-bold text-amber-300">
                     Historial del {selectedDay} de {MONTHS[selectedMonth]}
                   </h3>
-                  <button onClick={() => setSelectedDay(null)} className="text-slate-400 hover:text-white">
+                  <button onClick={() => { setSelectedDay(null); setEditingId(null); }} className="text-slate-400 hover:text-white">
                     <i className="fa-solid fa-xmark text-xl"></i>
                   </button>
                 </div>
 
-                <form onSubmit={handleAddRecord} className="space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                  <h4 className="text-sm font-bold text-amber-400">Nuevo Registro</h4>
-
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {PRESET_CHARS.map(p => (
-                      <button
-                        key={p.name}
-                        type="button"
-                        onClick={() => {
-                          setFormName(p.name);
-                          setFormRarity(p.rarity);
-                          setFormElement(p.element);
-                          setFormImage(p.icon);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg whitespace-nowrap border border-slate-700 font-medium"
+                {/* Formulario */}
+                <form onSubmit={handleSaveRecord} className="space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-bold text-amber-400">
+                      {editingId ? 'Editar Personaje' : 'Nuevo Registro'}
+                    </h4>
+                    {editingId && (
+                      <button 
+                        type="button" 
+                        onClick={() => { setEditingId(null); setFormName(''); setFormNotes(''); setFormImage(''); setFormConstellation(0); }}
+                        className="text-xs text-slate-400 hover:text-white underline"
                       >
-                        <img src={p.icon} className="w-4 h-4" />
-                        {p.name}
+                        Cancelar edición
                       </button>
-                    ))}
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Día</label>
-                      <input type="number" value={formDay} onChange={e => setFormDay(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-center w-full" min="1" max="31"/>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Mes</label>
-                      <select value={formMonth} onChange={e => setFormMonth(Number(e.target.value))} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full">
-                        {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] text-slate-400 font-bold block mb-1">Año</label>
                       <select value={formYear} onChange={e => setFormYear(Number(e.target.value))} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full">
                         {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                       </select>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                    <div className="sm:col-span-1">
+                    <div>
                       <label className="text-[10px] text-slate-400 font-bold block mb-1">Nombre</label>
                       <input type="text" placeholder="Ej: Kazuha" value={formName} onChange={e => setFormName(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full" required/>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-[10px] text-slate-400 font-bold block mb-1">Rareza</label>
                       <select value={formRarity} onChange={e => setFormRarity(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full">
-                        <option value={5}>5 Estrellas</option>
-                        <option value={4}>4 Estrellas</option>
+                        <option value={5}>5 Estrellas (5★)</option>
+                        <option value={4}>4 Estrellas (4★)</option>
                       </select>
                     </div>
                     <div>
@@ -562,8 +560,8 @@
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-1">Constelación</label>
-                      <select value={formConstellation} onChange={e => setFormConstellation(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs w-full">
+                      <label className="text-[10px] text-purple-400 font-bold block mb-1">Constelación</label>
+                      <select value={formConstellation} onChange={e => setFormConstellation(e.target.value)} className="bg-slate-900 border border-purple-500/50 rounded-lg p-2.5 text-xs font-semibold w-full text-purple-300">
                         <option value={0}>C0 (Base)</option>
                         <option value={1}>C1</option>
                         <option value={2}>C2</option>
@@ -575,7 +573,7 @@
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-2">
+                  <div className="flex items-center gap-3 pt-1">
                     <div className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
                       {formImage ? <img src={formImage} className="w-full h-full object-cover" /> : <i className="fa-solid fa-image text-slate-600"></i>}
                     </div>
@@ -586,10 +584,11 @@
                   </div>
 
                   <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-lg text-xs transition uppercase tracking-wider">
-                    Registrar Personaje
+                    {editingId ? 'Actualizar Personaje' : 'Registrar Personaje'}
                   </button>
                 </form>
 
+                {/* Lista de Registros de esa fecha */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold uppercase text-slate-400">Obtenidos en esta fecha:</h4>
                   {getRecordsForDay(selectedDay).length === 0 ? (
@@ -601,13 +600,22 @@
                           <div className="flex items-center gap-3">
                             <img src={rec.image} className="w-12 h-12 rounded-xl object-cover bg-slate-800" />
                             <div>
-                              <p className="text-xs font-bold">{rec.name} <span className="text-amber-400 font-normal">({rec.year})</span></p>
-                              <p className="text-[10px] text-slate-400">{rec.element} • {rec.rarity}★ {rec.constellation > 0 && `• C${rec.constellation}`}</p>
+                              <p className="text-xs font-bold">
+                                {rec.name} <span className="text-amber-400 font-normal">({rec.year})</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {rec.element} • {rec.rarity}★ <span className="text-purple-300 font-semibold">• C{rec.constellation || 0}</span>
+                              </p>
                             </div>
                           </div>
-                          <button onClick={() => handleDelete(rec.id)} className="text-slate-500 hover:text-red-400 text-xs p-1">
-                            <i className="fa-solid fa-trash"></i>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleEditClick(rec)} className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+                              <i className="fa-solid fa-pen text-[10px]"></i> Editar
+                            </button>
+                            <button onClick={() => handleDelete(rec.id)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-2.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1">
+                              <i className="fa-solid fa-trash text-[10px]"></i>
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
