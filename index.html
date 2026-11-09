@@ -1,561 +1,400 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Genshin Wish Tracker - Local</title>
-    
-    <!-- Tailwind CSS para los estilos -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React y ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel para compilar JSX en el navegador -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- FontAwesome para los Iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        /* Estilos personalizados para la barra de desplazamiento (Scrollbar) */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #020617; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #f59e0b; 
-        }
-        .scrollbar-none::-webkit-scrollbar {
-            display: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genshin Wish Tracker Calendar</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #0b0e14; color: #e2e8f0; font-family: sans-serif; }
+    .gold-glow { box-shadow: 0 0 12px rgba(234, 179, 8, 0.5); }
+    .purple-glow { box-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950">
-    
-    <!-- Contenedor principal donde se cargará la aplicación -->
-    <div id="root"></div>
+<body>
+  <div id="root"></div>
 
-    <!-- Código de la Aplicación -->
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-        // Configuraciones de Elementos
-        const ELEMENT_COLORS = {
-            Pyro: { text: 'text-red-400' },
-            Hydro: { text: 'text-blue-400' },
-            Anemo: { text: 'text-emerald-400' },
-            Electro: { text: 'text-purple-400' },
-            Dendro: { text: 'text-lime-400' },
-            Cryo: { text: 'text-cyan-400' },
-            Geo: { text: 'text-amber-400' },
+    const ELEMENTS = ['Anemo', 'Geo', 'Electro', 'Dendro', 'Hydro', 'Pyro', 'Cryo'];
+    const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    const PRESET_CHARS = [
+      { name: 'Raiden Shogun', rarity: 5, element: 'Electro', icon: 'https://api.iconify.design/gi:lightning-trio.svg' },
+      { name: 'Furina', rarity: 5, element: 'Hydro', icon: 'https://api.iconify.design/gi:water-drop.svg' },
+      { name: 'Nahida', rarity: 5, element: 'Dendro', icon: 'https://api.iconify.design/gi:clover.svg' },
+      { name: 'Zhongli', rarity: 5, element: 'Geo', icon: 'https://api.iconify.design/gi:stone-block.svg' },
+      { name: 'Kazuha', rarity: 5, element: 'Anemo', icon: 'https://api.iconify.design/gi:wind-hole.svg' },
+      { name: 'Hu Tao', rarity: 5, element: 'Pyro', icon: 'https://api.iconify.design/gi:flame.svg' },
+      { name: 'Neuvillette', rarity: 5, element: 'Hydro', icon: 'https://api.iconify.design/gi:water-drop.svg' }
+    ];
+
+    function App() {
+      const [records, setRecords] = useState(() => {
+        const saved = localStorage.getItem('genshin_wishes_db');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      const [selectedMonth, setSelectedMonth] = useState(10); // Noviembre (0-indexed)
+      const [selectedDay, setSelectedDay] = useState(null);
+      const [activeTab, setActiveTab] = useState('calendar');
+
+      // Form states
+      const [formName, setFormName] = useState('');
+      const [formRarity, setFormRarity] = useState(5);
+      const [formElement, setFormElement] = useState('Anemo');
+      const [formConstellation, setFormConstellation] = useState(0);
+      const [formNotes, setFormNotes] = useState('');
+      const [formDay, setFormDay] = useState(1);
+      const [formMonth, setFormMonth] = useState(10);
+      const [formYear, setFormYear] = useState(2026);
+      const [formImage, setFormImage] = useState('');
+
+      useEffect(() => {
+        localStorage.setItem('genshin_wishes_db', JSON.stringify(records));
+      }, [records]);
+
+      const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => setFormImage(reader.result);
+          reader.readAsDataURL(file);
+        }
+      };
+
+      const handleAddRecord = (e) => {
+        e.preventDefault();
+        if (!formName.trim()) return;
+
+        const newEntry = {
+          id: Date.now().toString(),
+          name: formName,
+          rarity: Number(formRarity),
+          element: formElement,
+          constellation: Number(formConstellation),
+          notes: formNotes,
+          day: Number(formDay),
+          month: Number(formMonth),
+          year: Number(formYear),
+          image: formImage || 'https://api.iconify.design/gi:sparkles.svg'
         };
 
-        const MONTH_NAMES = [
-            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-        ];
+        setRecords(prev => [...prev, newEntry]);
+        setFormName('');
+        setFormNotes('');
+        setFormImage('');
+      };
 
-        // Plantillas rápidas
-        const PRESET_CHARACTERS = [
-            { name: 'Raiden Shogun', rarity: 5, element: 'Electro', icon: 'https://images.api-genshin.dev/characters/raiden/icon.png' },
-            { name: 'Furina', rarity: 5, element: 'Hydro', icon: 'https://images.api-genshin.dev/characters/furina/icon.png' },
-            { name: 'Nahida', rarity: 5, element: 'Dendro', icon: 'https://images.api-genshin.dev/characters/nahida/icon.png' },
-            { name: 'Zhongli', rarity: 5, element: 'Geo', icon: 'https://images.api-genshin.dev/characters/zhongli/icon.png' },
-            { name: 'Kazuha', rarity: 5, element: 'Anemo', icon: 'https://images.api-genshin.dev/characters/kazuha/icon.png' },
-            { name: 'Hu Tao', rarity: 5, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/hu-tao/icon.png' },
-            { name: 'Neuvillette', rarity: 5, element: 'Hydro', icon: 'https://images.api-genshin.dev/characters/neuvillette/icon.png' },
-            { name: 'Yelan', rarity: 5, element: 'Hydro', icon: 'https://images.api-genshin.dev/characters/yelan/icon.png' },
-            { name: 'Arlecchino', rarity: 5, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/arlecchino/icon.png' },
-            { name: 'Mavuika', rarity: 5, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/mavuika/icon.png' },
-            { name: 'Bennett', rarity: 4, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/bennett/icon.png' },
-            { name: 'Xingqiu', rarity: 4, element: 'Hydro', icon: 'https://images.api-genshin.dev/characters/xingqiu/icon.png' },
-            { name: 'Xiangling', rarity: 4, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/xiangling/icon.png' },
-            { name: 'Fischl', rarity: 4, element: 'Electro', icon: 'https://images.api-genshin.dev/characters/fischl/icon.png' },
-        ];
-
-        function App() {
-            const [selectedMonthIndex, setSelectedMonthIndex] = useState(new Date().getMonth());
-            
-            const [pulls, setPulls] = useState(() => {
-                try {
-                    const saved = localStorage.getItem('genshin_calendar_pulls_v2');
-                    if (saved) return JSON.parse(saved);
-                    return [];
-                } catch (e) {
-                    console.error("Error cargando guardado", e);
-                    return [];
-                }
-            });
-
-            const [selectedDayNumber, setSelectedDayNumber] = useState(null);
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [editingPull, setEditingPull] = useState(null);
-
-            const [formDay, setFormDay] = useState(1);
-            const [formMonth, setFormMonth] = useState(selectedMonthIndex);
-            const [formYear, setFormYear] = useState(new Date().getFullYear());
-            const [formName, setFormName] = useState('');
-            const [formRarity, setFormRarity] = useState(5);
-            const [formElement, setFormElement] = useState('Pyro');
-            const [formConsts, setFormConsts] = useState(0);
-            const [formNotes, setFormNotes] = useState('');
-            const [formIcon, setFormIcon] = useState('');
-            const [customImageBase64, setCustomImageBase64] = useState('');
-            const [presetSearch, setPresetSearch] = useState('');
-
-            const [activeTab, setActiveTab] = useState('calendar');
-
-            useEffect(() => {
-                try {
-                    localStorage.setItem('genshin_calendar_pulls_v2', JSON.stringify(pulls));
-                } catch (e) {
-                    console.error("Error guardando datos", e);
-                }
-            }, [pulls]);
-
-            const handlePrevMonth = () => setSelectedMonthIndex(prev => (prev === 0 ? 11 : prev - 1));
-            const handleNextMonth = () => setSelectedMonthIndex(prev => (prev === 11 ? 0 : prev + 1));
-            const handleCurrentMonth = () => setSelectedMonthIndex(new Date().getMonth());
-
-            const daysInSelectedMonth = useMemo(() => {
-                const daysMap = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-                return daysMap[selectedMonthIndex];
-            }, [selectedMonthIndex]);
-
-            const handleDayClick = (dayNumber) => {
-                setSelectedDayNumber(dayNumber);
-                resetForm(dayNumber);
-                setIsModalOpen(true);
-            };
-
-            const resetForm = (dayNum = selectedDayNumber || 1) => {
-                setFormDay(dayNum);
-                setFormMonth(selectedMonthIndex);
-                setFormYear(new Date().getFullYear());
-                setFormName('');
-                setFormRarity(5);
-                setFormElement('Pyro');
-                setFormConsts(0);
-                setFormNotes('');
-                setFormIcon('');
-                setCustomImageBase64('');
-                setEditingPull(null);
-            };
-
-            const handleSelectPreset = (char) => {
-                setFormName(char.name);
-                setFormRarity(char.rarity);
-                setFormElement(char.element);
-                setFormIcon(char.icon);
-                setCustomImageBase64('');
-            };
-
-            const handleImageUpload = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    if (file.size > 2 * 1024 * 1024) {
-                        alert("La imagen debe ser menor a 2MB");
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        setCustomImageBase64(reader.result);
-                        setFormIcon('');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            const handleSubmitPull = (e) => {
-                e.preventDefault();
-                if (!formName.trim()) return;
-
-                const finalIcon = customImageBase64 || formIcon || 'https://images.api-genshin.dev/characters/paimon/icon.png';
-
-                if (editingPull) {
-                    setPulls(prev => prev.map(p => p.id === editingPull.id ? {
-                        ...p, day: Number(formDay), month: Number(formMonth), year: Number(formYear),
-                        name: formName, rarity: Number(formRarity), element: formElement,
-                        consts: Number(formConsts), notes: formNotes, icon: finalIcon
-                    } : p));
-                } else {
-                    const newEntry = {
-                        id: Date.now().toString(), day: Number(formDay), month: Number(formMonth), year: Number(formYear),
-                        name: formName, rarity: Number(formRarity), element: formElement,
-                        consts: Number(formConsts), notes: formNotes, icon: finalIcon
-                    };
-                    setPulls(prev => [...prev, newEntry]);
-                }
-                resetForm(selectedDayNumber || formDay);
-            };
-
-            const handleEditClick = (pull) => {
-                setEditingPull(pull);
-                setFormDay(pull.day);
-                setFormMonth(pull.month);
-                setFormYear(pull.year);
-                setFormName(pull.name);
-                setFormRarity(pull.rarity);
-                setFormElement(pull.element);
-                setFormConsts(pull.consts || 0);
-                setFormNotes(pull.notes || '');
-                if (pull.icon && pull.icon.startsWith('data:image')) {
-                    setCustomImageBase64(pull.icon);
-                    setFormIcon('');
-                } else {
-                    setFormIcon(pull.icon || '');
-                    setCustomImageBase64('');
-                }
-            };
-
-            const handleDeletePull = (id) => {
-                setPulls(prev => prev.filter(p => p.id !== id));
-                if (editingPull && editingPull.id === id) resetForm();
-            };
-
-            const handleExportData = () => {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pulls, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `genshin_historial_${new Date().toISOString().split('T')[0]}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-            };
-
-            const handleImportData = (e) => {
-                const fileReader = new FileReader();
-                if (e.target.files[0]) {
-                    fileReader.readAsText(e.target.files[0], "UTF-8");
-                    fileReader.onload = (e) => {
-                        try {
-                            const parsed = JSON.parse(e.target.result);
-                            if (Array.isArray(parsed)) setPulls(parsed);
-                        } catch (error) {
-                            console.error("Formato JSON invalido", error);
-                        }
-                    };
-                }
-            };
-
-            const getPullsForDayOfMonth = (dayNum) => {
-                return pulls.filter(p => p.month === selectedMonthIndex && p.day === dayNum)
-                            .sort((a, b) => b.year - a.year);
-            };
-
-            const stats = useMemo(() => {
-                const total = pulls.length;
-                const fiveStars = pulls.filter(p => p.rarity === 5).length;
-                const fourStars = pulls.filter(p => p.rarity === 4).length;
-                const monthPulls = pulls.filter(p => p.month === selectedMonthIndex);
-                const monthFiveStars = monthPulls.filter(p => p.rarity === 5).length;
-
-                const sorted = [...pulls].sort((a, b) => {
-                    if (b.year !== a.year) return b.year - a.year;
-                    if (b.month !== a.month) return b.month - a.month;
-                    return b.day - a.day;
-                });
-                const latest = sorted[0] || null;
-
-                return { total, fiveStars, fourStars, monthTotal: monthPulls.length, monthFiveStars, latest };
-            }, [pulls, selectedMonthIndex]);
-
-            const filteredPresets = PRESET_CHARACTERS.filter(c => 
-                c.name.toLowerCase().includes(presetSearch.toLowerCase())
-            );
-
-            return (
-                <div className="min-h-screen flex flex-col">
-                    {/* ENCABEZADO */}
-                    <header className="border-b border-amber-500/20 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-4 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 p-0.5 shadow-lg shadow-amber-500/20">
-                                <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center">
-                                    <i className="fa-solid fa-wand-magic-sparkles text-amber-400 animate-pulse text-sm"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-serif tracking-wide">
-                                    Genshin Wish Tracker
-                                </h1>
-                                <p className="text-xs text-slate-400">Histórico Multianual - Versión Local</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
-                            <button onClick={() => setActiveTab('calendar')} className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'calendar' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-semibold' : 'text-slate-400 hover:text-slate-200'}`}>
-                                <i className="fa-solid fa-calendar"></i> Calendario
-                            </button>
-                            <button onClick={() => setActiveTab('stats')} className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'stats' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-semibold' : 'text-slate-400 hover:text-slate-200'}`}>
-                                <i className="fa-solid fa-chart-simple"></i> Estadísticas
-                            </button>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 cursor-pointer transition-colors">
-                                <i className="fa-solid fa-upload text-amber-400"></i>
-                                <span>Importar</span>
-                                <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
-                            </label>
-                            <button onClick={handleExportData} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 transition-colors">
-                                <i className="fa-solid fa-download text-amber-400"></i>
-                                <span>Exportar</span>
-                            </button>
-                        </div>
-                    </header>
-
-                    <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-                        {/* TARJETAS DE RESUMEN */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden group hover:border-amber-500/30 transition-all">
-                                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
-                                    <i className="fa-solid fa-user text-xl"></i>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-400">Total Histórico</p>
-                                    <h3 className="text-2xl font-bold text-slate-100">{stats.total}</h3>
-                                </div>
-                            </div>
-                            <div className="bg-slate-900/60 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden group bg-gradient-to-br from-amber-500/5 to-transparent">
-                                <div className="p-3 bg-amber-500/20 rounded-xl text-amber-300 border border-amber-500/30">
-                                    <i className="fa-solid fa-star text-amber-400 text-xl"></i>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-amber-300/80 font-medium">5★ Totales</p>
-                                    <h3 className="text-2xl font-bold text-amber-300">{stats.fiveStars}</h3>
-                                </div>
-                            </div>
-                            <div className="bg-slate-900/60 border border-purple-500/30 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden group bg-gradient-to-br from-purple-500/5 to-transparent">
-                                <div className="p-3 bg-purple-500/20 rounded-xl text-purple-300 border border-purple-500/30">
-                                    <i className="fa-solid fa-star text-purple-400 text-xl"></i>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-purple-300/80 font-medium">En {MONTH_NAMES[selectedMonthIndex]}</p>
-                                    <h3 className="text-2xl font-bold text-purple-300">{stats.monthTotal} <span className="text-xs text-slate-400">({stats.monthFiveStars} de 5★)</span></h3>
-                                </div>
-                            </div>
-                            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center gap-3">
-                                {stats.latest ? (
-                                    <>
-                                        <div className={`w-12 h-12 rounded-xl overflow-hidden border ${stats.latest.rarity === 5 ? 'border-amber-400 bg-amber-900/40' : 'border-purple-400 bg-purple-900/40'} flex-shrink-0 relative`}>
-                                            <img src={stats.latest.icon} alt={stats.latest.name} className="w-full h-full object-cover" />
-                                        </div>
-                                        <div className="overflow-hidden">
-                                            <p className="text-xs text-slate-400 truncate">Último Registrado</p>
-                                            <p className="text-sm font-bold text-slate-100 truncate">{stats.latest.name}</p>
-                                            <p className="text-[10px] text-amber-400/90 font-medium">{stats.latest.day} {MONTH_NAMES[stats.latest.month]} ({stats.latest.year})</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-xs text-slate-500 italic py-2">Sin registros</div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* VISTA CALENDARIO */}
-                        {activeTab === 'calendar' && (
-                            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col gap-6">
-                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-800 pb-4">
-                                    <div className="flex items-center gap-3">
-                                        <h2 className="text-2xl font-bold font-serif text-slate-100 tracking-wide">
-                                            Mes de <span className="text-amber-400">{MONTH_NAMES[selectedMonthIndex]}</span>
-                                        </h2>
-                                        <span className="text-xs bg-amber-500/10 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30">
-                                            Todos los años
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={handleCurrentMonth} className="text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-xl border border-slate-700 mr-2">Mes Actual</button>
-                                        <button onClick={handlePrevMonth} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"><i className="fa-solid fa-chevron-left"></i></button>
-                                        <button onClick={handleNextMonth} className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"><i className="fa-solid fa-chevron-right"></i></button>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
-                                    {Array.from({ length: daysInSelectedMonth }, (_, i) => i + 1).map((dayNum) => {
-                                        const dayPulls = getPullsForDayOfMonth(dayNum);
-                                        const isCurrent = new Date().getDate() === dayNum && new Date().getMonth() === selectedMonthIndex;
-
-                                        return (
-                                            <div key={dayNum} onClick={() => handleDayClick(dayNum)} className={`min-h-[110px] p-2.5 rounded-2xl border transition-all flex flex-col justify-between group relative overflow-hidden cursor-pointer bg-slate-900/90 border-slate-800 hover:border-amber-500/60 ${isCurrent ? 'ring-2 ring-amber-400/80 bg-amber-500/5' : ''}`}>
-                                                <div className="flex justify-between items-center w-full z-10">
-                                                    <span className={`text-sm font-bold ${isCurrent ? 'text-amber-400' : 'text-slate-300'}`}>Día {dayNum}</span>
-                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full border border-amber-500/30">+ Info</span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-1.5 mt-2 z-10 overflow-y-auto max-h-[75px] scrollbar-none">
-                                                    {dayPulls.map(pull => (
-                                                        <div key={pull.id} className={`w-9 h-9 rounded-xl border overflow-hidden relative shadow-md flex-shrink-0 ${pull.rarity === 5 ? 'border-amber-400 bg-gradient-to-b from-amber-300/30 to-amber-700/60' : 'border-purple-400 bg-gradient-to-b from-purple-300/30 to-purple-800/60'}`}>
-                                                            <img src={pull.icon} alt={pull.name} className="w-full h-full object-cover" />
-                                                            <span className="absolute bottom-0 inset-x-0 bg-slate-950/90 text-[7px] text-amber-300 font-extrabold text-center leading-tight">'{String(pull.year).slice(2)}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {dayPulls.some(p => p.rarity === 5) && <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 to-transparent pointer-events-none" />}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* VISTA ESTADÍSTICAS */}
-                        {activeTab === 'stats' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <div className="lg:col-span-1 space-y-6">
-                                    <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                                        <h3 className="text-lg font-bold font-serif text-amber-300 flex items-center gap-2">
-                                            <i className="fa-solid fa-chart-simple text-amber-400"></i> Distribución
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <div className="flex justify-between text-xs mb-1"><span className="text-amber-300 font-semibold">5 Estrellas</span><span className="text-slate-400">{stats.total > 0 ? Math.round((stats.fiveStars / stats.total) * 100) : 0}% ({stats.fiveStars})</span></div>
-                                                <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                                                    <div className="h-full bg-gradient-to-r from-yellow-400 to-amber-500" style={{ width: `${stats.total > 0 ? (stats.fiveStars / stats.total) * 100 : 0}%` }} />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="flex justify-between text-xs mb-1"><span className="text-purple-300 font-semibold">4 Estrellas</span><span className="text-slate-400">{stats.total > 0 ? Math.round((stats.fourStars / stats.total) * 100) : 0}% ({stats.fourStars})</span></div>
-                                                <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                                                    <div className="h-full bg-gradient-to-r from-purple-400 to-indigo-500" style={{ width: `${stats.total > 0 ? (stats.fourStars / stats.total) * 100 : 0}%` }} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col gap-4">
-                                    <h3 className="text-lg font-bold font-serif text-slate-100 flex items-center gap-2">
-                                        <i className="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Historial Completo
-                                    </h3>
-                                    {pulls.length === 0 ? (
-                                        <div className="text-center py-12 text-slate-500">No hay personajes.</div>
-                                    ) : (
-                                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                                            {[...pulls].sort((a,b) => {
-                                                if (b.year !== a.year) return b.year - a.year;
-                                                if (b.month !== a.month) return b.month - a.month;
-                                                return b.day - a.day;
-                                            }).map((pull) => (
-                                                <div key={pull.id} className={`flex items-center justify-between p-3 rounded-2xl border ${pull.rarity === 5 ? 'border-amber-500/30 bg-amber-500/5' : 'border-purple-500/30 bg-purple-500/5'}`}>
-                                                    <div className="flex items-center gap-4">
-                                                        <img src={pull.icon} alt={pull.name} className={`w-12 h-12 rounded-xl border object-cover ${pull.rarity === 5 ? 'border-amber-400' : 'border-purple-400'}`} />
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <h4 className="font-bold text-slate-100 text-sm">{pull.name}</h4>
-                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${pull.rarity === 5 ? 'bg-amber-400/20 text-amber-300' : 'bg-purple-400/20 text-purple-300'}`}>{pull.rarity}★</span>
-                                                            </div>
-                                                            <div className="text-xs text-slate-400 mt-1">Obtención: {pull.day} de {MONTH_NAMES[pull.month]} de {pull.year} • {pull.element}</div>
-                                                        </div>
-                                                    </div>
-                                                    <button onClick={() => handleDeletePull(pull.id)} className="p-2 text-slate-500 hover:text-red-400 transition-colors"><i className="fa-solid fa-trash"></i></button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </main>
-
-                    {/* MODAL */}
-                    {isModalOpen && (
-                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-slate-900 border border-amber-500/30 w-full max-w-2xl rounded-3xl overflow-hidden flex flex-col max-h-[90vh]">
-                                <div className="bg-slate-800/80 px-6 py-4 border-b border-slate-700/60 flex justify-between items-center">
-                                    <h3 className="text-lg font-bold font-serif text-slate-100"><i className="fa-solid fa-calendar text-amber-400 mr-2"></i>Historial del {selectedDayNumber} de {MONTH_NAMES[selectedMonthIndex]}</h3>
-                                    <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-200"><i className="fa-solid fa-xmark text-lg"></i></button>
-                                </div>
-
-                                <div className="p-6 overflow-y-auto space-y-6">
-                                    {getPullsForDayOfMonth(selectedDayNumber).length > 0 && (
-                                        <div>
-                                            <h4 className="text-xs font-semibold text-slate-400 mb-3">Obtenidos este día:</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {getPullsForDayOfMonth(selectedDayNumber).map(pull => (
-                                                    <div key={pull.id} className="p-3 rounded-2xl border bg-slate-800/50 border-slate-700 flex justify-between">
-                                                        <div className="flex gap-3 items-center">
-                                                            <img src={pull.icon} className="w-10 h-10 rounded-lg object-cover" />
-                                                            <div>
-                                                                <p className="font-bold text-sm">{pull.name} <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1 rounded">{pull.year}</span></p>
-                                                                <p className="text-xs text-slate-400">{pull.rarity}★ • {pull.element}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <button onClick={() => handleEditClick(pull)} className="text-slate-400 hover:text-amber-300"><i className="fa-solid fa-pen"></i></button>
-                                                            <button onClick={() => handleDeletePull(pull.id)} className="text-slate-400 hover:text-red-400"><i className="fa-solid fa-trash"></i></button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <form onSubmit={handleSubmitPull} className="space-y-4 border-t border-slate-800 pt-4">
-                                        <h4 className="text-xs font-semibold text-amber-400">{editingPull ? 'Editar Registro' : 'Nuevo Registro'}</h4>
-                                        
-                                        <div className="flex gap-2 overflow-x-auto pb-2">
-                                            {PRESET_CHARACTERS.map(c => (
-                                                <button type="button" key={c.name} onClick={() => handleSelectPreset(c)} className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs whitespace-nowrap">
-                                                    <img src={c.icon} className="w-4 h-4 rounded-full"/> {c.name}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <input type="number" value={formDay} onChange={e=>setFormDay(e.target.value)} className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs" />
-                                            <select value={formMonth} onChange={e=>setFormMonth(Number(e.target.value))} className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs">
-                                                {MONTH_NAMES.map((m, i) => <option key={i} value={i}>{m}</option>)}
-                                            </select>
-                                            <select value={formYear} onChange={e=>setFormYear(Number(e.target.value))} className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs">
-                                                {[2020,2021,2022,2023,2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <input type="text" required placeholder="Nombre" value={formName} onChange={e=>setFormName(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm" />
-                                            <select value={formRarity} onChange={e=>setFormRarity(Number(e.target.value))} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm">
-                                                <option value={5}>5 Estrellas</option>
-                                                <option value={4}>4 Estrellas</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="flex gap-4 items-center">
-                                            <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                                {(customImageBase64 || formIcon) ? <img src={customImageBase64 || formIcon} className="w-full h-full object-cover"/> : <i className="fa-solid fa-image text-slate-600"></i>}
-                                            </div>
-                                            <div className="flex-1 space-y-2">
-                                                <label className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs cursor-pointer">
-                                                    <i className="fa-solid fa-upload text-amber-400"></i> Subir Imagen PC
-                                                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-end gap-3 pt-2">
-                                            {editingPull && <button type="button" onClick={()=>resetForm(selectedDayNumber)} className="px-4 py-2 bg-slate-800 text-xs rounded-xl">Cancelar</button>}
-                                            <button type="submit" className="px-6 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold rounded-xl text-xs">
-                                                {editingPull ? 'Guardar' : 'Registrar'}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+      const handleDelete = (id) => {
+        if (confirm('¿Seguro que deseas eliminar este registro?')) {
+          setRecords(prev => prev.filter(r => r.id !== id));
         }
+      };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+      const openDayModal = (day) => {
+        setSelectedDay(day);
+        setFormDay(day);
+        setFormMonth(selectedMonth);
+      };
+
+      const getRecordsForDay = (day) => {
+        return records.filter(r => r.day === day && r.month === selectedMonth);
+      };
+
+      const sortedRecords = [...records].sort((a, b) => {
+        if (b.year !== a.year) return b.year - a.year;
+        if (b.month !== a.month) return b.month - a.month;
+        return b.day - a.day;
+      });
+
+      return (
+        <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
+          {/* Header */}
+          <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-3">
+              <i className="fa-solid fa-calendar-star text-amber-400 text-3xl"></i>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
+                  Genshin Wish Tracker
+                </h1>
+                <p className="text-sm text-slate-400">Histórico de Personajes Obtenidos</p>
+              </div>
+            </div>
+
+            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button 
+                onClick={() => setActiveTab('calendar')}
+                className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'calendar' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+              >
+                <i className="fa-solid fa-calendar-days mr-2"></i>Calendario
+              </button>
+              <button 
+                onClick={() => setActiveTab('stats')}
+                className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'stats' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+              >
+                <i className="fa-solid fa-[#0b0e14] fa-chart-pie mr-2"></i>Histórico & Stats
+              </button>
+            </div>
+          </header>
+
+          {/* Tab: Calendar */}
+          {activeTab === 'calendar' && (
+            <main>
+              {/* Selector de Mes */}
+              <div className="flex items-center justify-between mb-6 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                <button 
+                  onClick={() => setSelectedMonth(prev => (prev === 0 ? 11 : prev - 1))}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
+                >
+                  <i className="fa-solid fa-chevron-left mr-1"></i> Anterior
+                </button>
+                <h2 className="text-xl font-bold text-amber-300">
+                  {MONTHS[selectedMonth]} <span className="text-xs text-slate-400 font-normal">(Todos los años)</span>
+                </h2>
+                <button 
+                  onClick={() => setSelectedMonth(prev => (prev === 11 ? 0 : prev + 1))}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm"
+                >
+                  Siguiente <i className="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+              </div>
+
+              {/* Grilla Calendario (31 días) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                  const dayRecords = getRecordsForDay(day);
+                  return (
+                    <div 
+                      key={day}
+                      onClick={() => openDayModal(day)}
+                      className="bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800/80 hover:border-amber-500/50 rounded-xl p-3 min-h-[110px] cursor-pointer transition flex flex-col justify-between"
+                    >
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-2">
+                        <span>Día {day}</span>
+                        {dayRecords.length > 0 && (
+                          <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full text-[10px]">
+                            {dayRecords.length}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1">
+                        {dayRecords.map(rec => (
+                          <div 
+                            key={rec.id}
+                            className={`relative w-8 h-8 rounded-lg overflow-hidden border ${rec.rarity === 5 ? 'border-amber-400 gold-glow' : 'border-purple-400 purple-glow'}`}
+                            title={`${rec.name} (${rec.year})`}
+                          >
+                            <img src={rec.image} alt={rec.name} className="w-full h-full object-cover" />
+                            <span className="absolute bottom-0 right-0 bg-black/70 text-[8px] px-1 text-white">
+                              {rec.year.toString().slice(-2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </main>
+          )}
+
+          {/* Tab: Stats & Full List */}
+          {activeTab === 'stats' && (
+            <main className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
+                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Total Registrados</p>
+                  <p className="text-3xl font-extrabold text-amber-400">{records.length}</p>
+                </div>
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
+                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Personajes 5★</p>
+                  <p className="text-3xl font-extrabold text-amber-300">
+                    {records.filter(r => r.rarity === 5).length}
+                  </p>
+                </div>
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
+                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Personajes 4★</p>
+                  <p className="text-3xl font-extrabold text-purple-400">
+                    {records.filter(r => r.rarity === 4).length}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
+                <h3 className="text-lg font-bold text-amber-300 mb-4">Histórico Completo por Fecha de Obtención</h3>
+                {sortedRecords.length === 0 ? (
+                  <p className="text-slate-500 text-sm text-center py-8">No hay registros cargados aún.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {sortedRecords.map(rec => (
+                      <div 
+                        key={rec.id}
+                        className={`p-4 rounded-xl border bg-slate-950 flex items-center gap-3 relative ${rec.rarity === 5 ? 'border-amber-500/40' : 'border-purple-500/40'}`}
+                      >
+                        <img src={rec.image} className="w-12 h-12 rounded-lg object-cover bg-slate-800 border border-slate-700" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm truncate">{rec.name}</p>
+                          <p className="text-xs text-slate-400">
+                            {rec.element} • <span className={rec.rarity === 5 ? 'text-amber-400' : 'text-purple-400'}>{rec.rarity}★</span> {rec.constellation > 0 && `(C${rec.constellation})`}
+                          </p>
+                          <p className="text-[10px] text-amber-400/80 font-medium mt-1">
+                            {rec.day} de {MONTHS[rec.month]} de {rec.year}
+                          </p>
+                        </div>
+                        <button onClick={() => handleDelete(rec.id)} className="text-slate-500 hover:text-red-400 text-xs p-1">
+                          <i className="fa-solid fa-trash"></i>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </main>
+          )}
+
+          {/* Modal del Día */}
+          {selectedDay !== null && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                  <h3 className="text-lg font-bold text-amber-300">
+                    Historial del {selectedDay} de {MONTHS[selectedMonth]}
+                  </h3>
+                  <button onClick={() => setSelectedDay(null)} className="text-slate-400 hover:text-white">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
+
+                {/* Formulario */}
+                <form onSubmit={handleAddRecord} className="space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                  <h4 className="text-sm font-bold text-amber-400">Nuevo Registro</h4>
+
+                  {/* Presets */}
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {PRESET_CHARS.map(p => (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={() => {
+                          setFormName(p.name);
+                          setFormRarity(p.rarity);
+                          setFormElement(p.element);
+                          setFormImage(p.icon);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg whitespace-nowrap border border-slate-700"
+                      >
+                        <img src={p.icon} className="w-4 h-4" />
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <input 
+                      type="number" 
+                      value={formDay} 
+                      onChange={e => setFormDay(e.target.value)} 
+                      placeholder="Día" 
+                      className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-center" 
+                      min="1" max="31"
+                    />
+                    <select 
+                      value={formMonth} 
+                      onChange={e => setFormMonth(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs"
+                    >
+                      {MONTHS.map((m, idx) => <option key={m} value={idx}>{m}</option>)}
+                    </select>
+                    <select 
+                      value={formYear} 
+                      onChange={e => setFormYear(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs"
+                    >
+                      {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Nombre del personaje" 
+                      value={formName} 
+                      onChange={e => setFormName(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs sm:col-span-1"
+                      required
+                    />
+                    <select 
+                      value={formRarity} 
+                      onChange={e => setFormRarity(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs"
+                    >
+                      <option value={5}>5 Estrellas</option>
+                      <option value={4}>4 Estrellas</option>
+                    </select>
+                    {/* MENU DESPLEGABLE DE ELEMENTO (AÑADIDO) */}
+                    <select 
+                      value={formElement} 
+                      onChange={e => setFormElement(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs"
+                    >
+                      {ELEMENTS.map(el => <option key={el} value={el}>{el}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
+                      {formImage ? <img src={formImage} className="w-full h-full object-cover" /> : <i className="fa-solid fa-image text-slate-600"></i>}
+                    </div>
+                    <label className="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg p-2.5 text-xs text-center cursor-pointer font-medium">
+                      <i className="fa-solid fa-upload mr-2 text-amber-400"></i>Subir Imagen PC
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                  </div>
+
+                  <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs transition">
+                    Registrar Personaje
+                  </button>
+                </form>
+
+                {/* Lista de Apariciones del Día */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase text-slate-400">Obtenidos en esta fecha:</h4>
+                  {getRecordsForDay(selectedDay).length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">No hay registros guardados para el {selectedDay} de {MONTHS[selectedMonth]}.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {getRecordsForDay(selectedDay).map(rec => (
+                        <div key={rec.id} className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                          <div className="flex items-center gap-3">
+                            <img src={rec.image} className="w-10 h-10 rounded-lg object-cover bg-slate-800" />
+                            <div>
+                              <p className="text-xs font-bold">{rec.name} <span className="text-amber-400 font-normal">({rec.year})</span></p>
+                              <p className="text-[10px] text-slate-400">{rec.element} • {rec.rarity}★</p>
+                            </div>
+                          </div>
+                          <button onClick={() => handleDelete(rec.id)} className="text-slate-500 hover:text-red-400 text-xs p-1">
+                            <i className="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
 </body>
 </html>
