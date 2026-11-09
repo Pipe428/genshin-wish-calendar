@@ -8,326 +8,269 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background-color: #090d16; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; }
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #090d16; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
-    .gold-border { border-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
-    .purple-border { border-color: #a855f7; box-shadow: 0 0 10px rgba(168, 85, 247, 0.3); }
+    body { background-color: #0b0e14; color: #e2e8f0; font-family: sans-serif; }
+    .gold-glow { box-shadow: 0 0 12px rgba(234, 179, 8, 0.6); }
+    .purple-glow { box-shadow: 0 0 12px rgba(168, 85, 247, 0.6); }
   </style>
 </head>
-<body class="selection:bg-amber-500 selection:text-slate-950">
+<body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect } = React;
 
-    const ELEMENTS = [
-      { name: 'Pyro', color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/50', icon: 'fa-fire' },
-      { name: 'Hydro', color: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/50', icon: 'fa-droplet' },
-      { name: 'Anemo', color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/50', icon: 'fa-wind' },
-      { name: 'Electro', color: 'text-purple-400', bg: 'bg-purple-500/20', border: 'border-purple-500/50', icon: 'fa-bolt' },
-      { name: 'Dendro', color: 'text-lime-400', bg: 'bg-lime-500/20', border: 'border-lime-500/50', icon: 'fa-leaf' },
-      { name: 'Cryo', color: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/50', icon: 'fa-snowflake' },
-      { name: 'Geo', color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/50', icon: 'fa-mountain' },
-    ];
-
+    const ELEMENTS = ['Anemo', 'Geo', 'Electro', 'Dendro', 'Hydro', 'Pyro', 'Cryo'];
     const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
+    const ELEMENT_COLORS = {
+      Anemo: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      Geo: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      Electro: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+      Dendro: 'bg-green-500/20 text-green-300 border-green-500/40',
+      Hydro: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+      Pyro: 'bg-red-500/20 text-red-300 border-red-500/40',
+      Cryo: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+    };
+
     const PRESET_CHARS = [
-      { name: 'Raiden Shogun', rarity: 5, element: 'Electro', icon: 'https://images.api-genshin.dev/characters/raiden/icon.png' },
-      { name: 'Furina', rarity: 5, element: 'Hydro', icon: 'https://images.api-genshin.dev/characters/furina/icon.png' },
-      { name: 'Nahida', rarity: 5, element: 'Dendro', icon: 'https://images.api-genshin.dev/characters/nahida/icon.png' },
-      { name: 'Zhongli', rarity: 5, element: 'Geo', icon: 'https://images.api-genshin.dev/characters/zhongli/icon.png' },
-      { name: 'Kazuha', rarity: 5, element: 'Anemo', icon: 'https://images.api-genshin.dev/characters/kazuha/icon.png' },
-      { name: 'Hu Tao', rarity: 5, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/hu-tao/icon.png' },
-      { name: 'Neuvillette', rarity: 5, element: 'Hydro', icon: 'https://images.api-genshin.dev/characters/neuvillette/icon.png' },
-      { name: 'Bennett', rarity: 4, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/bennett/icon.png' },
-      { name: 'Xingqiu', rarity: 4, element: 'Hydro', icon: 'https://images.api-genshin.dev/characters/xingqiu/icon.png' },
-      { name: 'Xiangling', rarity: 4, element: 'Pyro', icon: 'https://images.api-genshin.dev/characters/xiangling/icon.png' }
+      { name: 'Raiden Shogun', rarity: 5, element: 'Electro', icon: 'https://api.iconify.design/gi:lightning-trio.svg' },
+      { name: 'Furina', rarity: 5, element: 'Hydro', icon: 'https://api.iconify.design/gi:water-drop.svg' },
+      { name: 'Nahida', rarity: 5, element: 'Dendro', icon: 'https://api.iconify.design/gi:clover.svg' },
+      { name: 'Zhongli', rarity: 5, element: 'Geo', icon: 'https://api.iconify.design/gi:stone-block.svg' },
+      { name: 'Kazuha', rarity: 5, element: 'Anemo', icon: 'https://api.iconify.design/gi:wind-hole.svg' },
+      { name: 'Hu Tao', rarity: 5, element: 'Pyro', icon: 'https://api.iconify.design/gi:flame.svg' },
+      { name: 'Neuvillette', rarity: 5, element: 'Hydro', icon: 'https://api.iconify.design/gi:water-drop.svg' }
     ];
 
     function App() {
       const [records, setRecords] = useState(() => {
-        try {
-          const saved = localStorage.getItem('genshin_wishes_db_v3');
-          return saved ? JSON.parse(saved) : [];
-        } catch(e) {
-          return [];
-        }
+        const saved = localStorage.getItem('genshin_wishes_db');
+        return saved ? JSON.parse(saved) : [];
       });
 
-      const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+      const [selectedMonth, setSelectedMonth] = useState(10);
       const [selectedDay, setSelectedDay] = useState(null);
       const [activeTab, setActiveTab] = useState('calendar');
 
-      // Filters for Stats
-      const [filterElement, setFilterElement] = useState('ALL');
-      const [filterRarity, setFilterRarity] = useState('ALL');
+      // Filtros de estadísticas
+      const [filterElement, setFilterElement] = useState('Todos');
+      const [filterRarity, setFilterRarity] = useState('Todas');
 
-      // Form States
+      // Form states
       const [formName, setFormName] = useState('');
       const [formRarity, setFormRarity] = useState(5);
-      const [formElement, setFormElement] = useState('Pyro');
+      const [formElement, setFormElement] = useState('Anemo');
       const [formConstellation, setFormConstellation] = useState(0);
       const [formNotes, setFormNotes] = useState('');
       const [formDay, setFormDay] = useState(1);
-      const [formMonth, setFormMonth] = useState(selectedMonth);
-      const [formYear, setFormYear] = useState(new Date().getFullYear());
+      const [formMonth, setFormMonth] = useState(10);
+      const [formYear, setFormYear] = useState(2026);
       const [formImage, setFormImage] = useState('');
-      const [editingId, setEditingId] = useState(null);
 
       useEffect(() => {
-        localStorage.setItem('genshin_wishes_db_v3', JSON.stringify(records));
+        localStorage.setItem('genshin_wishes_db', JSON.stringify(records));
       }, [records]);
 
       const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-          if (file.size > 3 * 1024 * 1024) {
-            alert("La imagen no debe superar los 3MB.");
-            return;
-          }
           const reader = new FileReader();
           reader.onloadend = () => setFormImage(reader.result);
           reader.readAsDataURL(file);
         }
       };
 
-      const resetForm = (day = selectedDay || 1) => {
-        setFormName('');
-        setFormRarity(5);
-        setFormElement('Pyro');
-        setFormConstellation(0);
-        setFormNotes('');
-        setFormDay(day);
-        setFormMonth(selectedMonth);
-        setFormYear(new Date().getFullYear());
-        setFormImage('');
-        setEditingId(null);
-      };
-
-      const handleSaveRecord = (e) => {
+      const handleAddRecord = (e) => {
         e.preventDefault();
         if (!formName.trim()) return;
 
-        const imgUrl = formImage || 'https://images.api-genshin.dev/characters/paimon/icon.png';
+        const newEntry = {
+          id: Date.now().toString(),
+          name: formName,
+          rarity: Number(formRarity),
+          element: formElement,
+          constellation: Number(formConstellation),
+          notes: formNotes,
+          day: Number(formDay),
+          month: Number(formMonth),
+          year: Number(formYear),
+          image: formImage || 'https://api.iconify.design/gi:sparkles.svg'
+        };
 
-        if (editingId) {
-          setRecords(prev => prev.map(r => r.id === editingId ? {
-            ...r,
-            name: formName,
-            rarity: Number(formRarity),
-            element: formElement,
-            constellation: Number(formConstellation),
-            notes: formNotes,
-            day: Number(formDay),
-            month: Number(formMonth),
-            year: Number(formYear),
-            image: imgUrl
-          } : r));
-        } else {
-          const newEntry = {
-            id: Date.now().toString(),
-            name: formName,
-            rarity: Number(formRarity),
-            element: formElement,
-            constellation: Number(formConstellation),
-            notes: formNotes,
-            day: Number(formDay),
-            month: Number(formMonth),
-            year: Number(formYear),
-            image: imgUrl
-          };
-          setRecords(prev => [...prev, newEntry]);
-        }
-
-        resetForm(formDay);
-      };
-
-      const handleEdit = (rec) => {
-        setEditingId(rec.id);
-        setFormName(rec.name);
-        setFormRarity(rec.rarity);
-        setFormElement(rec.element);
-        setFormConstellation(rec.constellation || 0);
-        setFormNotes(rec.notes || '');
-        setFormDay(rec.day);
-        setFormMonth(rec.month);
-        setFormYear(rec.year);
-        setFormImage(rec.image || '');
+        setRecords(prev => [...prev, newEntry]);
+        setFormName('');
+        setFormNotes('');
+        setFormImage('');
       };
 
       const handleDelete = (id) => {
-        setRecords(prev => prev.filter(r => r.id !== id));
-        if (editingId === id) resetForm();
+        if (confirm('¿Seguro que deseas eliminar este registro?')) {
+          setRecords(prev => prev.filter(r => r.id !== id));
+        }
       };
 
       const openDayModal = (day) => {
         setSelectedDay(day);
-        resetForm(day);
+        setFormDay(day);
+        setFormMonth(selectedMonth);
       };
 
       const getRecordsForDay = (day) => {
-        return records.filter(r => r.day === day && r.month === selectedMonth)
-                      .sort((a, b) => b.year - a.year);
+        return records.filter(r => r.day === day && r.month === selectedMonth);
       };
 
-      // Filtered Records for Stats View
-      const filteredRecords = useMemo(() => {
-        return records.filter(r => {
-          const matchElement = filterElement === 'ALL' || r.element === filterElement;
-          const matchRarity = filterRarity === 'ALL' || r.rarity === Number(filterRarity);
-          return matchElement && matchRarity;
-        }).sort((a, b) => {
-          if (b.year !== a.year) return b.year - a.year;
-          if (b.month !== a.month) return b.month - a.month;
-          return b.day - a.day;
-        });
-      }, [records, filterElement, filterRarity]);
+      // Ordenar registros por fecha (Año -> Mes -> Día)
+      const sortedRecords = [...records].sort((a, b) => {
+        if (b.year !== a.year) return b.year - a.year;
+        if (b.month !== a.month) return b.month - a.month;
+        return b.day - a.day;
+      });
 
-      const handleExport = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
-        const dl = document.createElement('a');
-        dl.setAttribute("href", dataStr);
-        dl.setAttribute("download", `genshin_wishes_backup_${new Date().toISOString().split('T')[0]}.json`);
-        document.body.appendChild(dl);
-        dl.click();
-        dl.remove();
-      };
+      // Registros filtrados para el Histórico
+      const filteredRecords = sortedRecords.filter(r => {
+        const matchElement = filterElement === 'Todos' || r.element === filterElement;
+        const matchRarity = filterRarity === 'Todas' || r.rarity === Number(filterRarity);
+        return matchElement && matchRarity;
+      });
 
-      const handleImport = (e) => {
-        const reader = new FileReader();
-        if (e.target.files[0]) {
-          reader.readAsText(e.target.files[0], "UTF-8");
-          reader.onload = (evt) => {
-            try {
-              const parsed = JSON.parse(evt.target.result);
-              if (Array.isArray(parsed)) setRecords(parsed);
-            } catch (err) {
-              alert("Archivo JSON no válido.");
-            }
-          };
+      // Cálculo de mayor sequía (días sin obtener personaje)
+      const calculateDrought = () => {
+        if (records.length < 2) return null;
+
+        // Ordenar cronológicamente (de más antiguo a más reciente)
+        const chronological = [...records].map(r => ({
+          ...r,
+          dateObj: new Date(r.year, r.month, r.day)
+        })).sort((a, b) => a.dateObj - b.dateObj);
+
+        let maxDiffDays = 0;
+        let startDate = null;
+        let endDate = null;
+
+        for (let i = 0; i < chronological.length - 1; i++) {
+          const current = chronological[i].dateObj;
+          const next = chronological[i + 1].dateObj;
+          const diffTime = next - current;
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays > maxDiffDays) {
+            maxDiffDays = diffDays;
+            startDate = chronological[i];
+            endDate = chronological[i + 1];
+          }
         }
+
+        return { maxDiffDays, startDate, endDate };
       };
+
+      const droughtInfo = calculateDrought();
+
+      // Estadísticas por mes con más suerte
+      const monthCounts = {};
+      records.forEach(r => {
+        monthCounts[r.month] = (monthCounts[r.month] || 0) + 1;
+      });
+      let bestMonthIndex = null;
+      let maxMonthCount = 0;
+      Object.entries(monthCounts).forEach(([m, count]) => {
+        if (count > maxMonthCount) {
+          maxMonthCount = count;
+          bestMonthIndex = Number(m);
+        }
+      });
+
+      // Conteo por Año
+      const yearCounts = {};
+      records.forEach(r => {
+        yearCounts[r.year] = (yearCounts[r.year] || 0) + 1;
+      });
 
       return (
-        <div className="min-h-screen p-3 sm:p-6 max-w-7xl mx-auto flex flex-col gap-6">
-          {/* HEADER */}
-          <header className="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-3xl border border-slate-800 shadow-xl">
+        <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
+          {/* Header */}
+          <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 p-0.5 shadow-lg shadow-amber-500/20">
-                <div className="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center">
-                  <i className="fa-solid fa-wand-magic-sparkles text-amber-400 text-xl animate-pulse"></i>
-                </div>
-              </div>
+              <i className="fa-solid fa-calendar-star text-amber-400 text-3xl"></i>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-serif">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
                   Genshin Wish Tracker
                 </h1>
-                <p className="text-xs text-slate-400">Calendario e Histórico de Personajes Conseguidos</p>
+                <p className="text-sm text-slate-400">Histórico de Personajes Obtenidos</p>
               </div>
             </div>
 
-            {/* TAB SELECTOR */}
-            <div className="flex items-center bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button 
                 onClick={() => setActiveTab('calendar')}
-                className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all ${activeTab === 'calendar' ? 'bg-amber-500 text-slate-950 shadow-lg font-bold' : 'text-slate-400 hover:text-white'}`}
+                className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'calendar' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
               >
-                <i className="fa-solid fa-calendar-days"></i> Calendario
+                <i className="fa-solid fa-calendar-days mr-2"></i>Calendario
               </button>
               <button 
                 onClick={() => setActiveTab('stats')}
-                className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all ${activeTab === 'stats' ? 'bg-amber-500 text-slate-950 shadow-lg font-bold' : 'text-slate-400 hover:text-white'}`}
+                className={`px-5 py-2 rounded-lg font-medium text-sm transition ${activeTab === 'stats' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
               >
-                <i className="fa-solid fa-chart-pie"></i> Histórico & Stats
-              </button>
-            </div>
-
-            {/* IMPORT / EXPORT */}
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 cursor-pointer transition">
-                <i className="fa-solid fa-file-import text-amber-400"></i> Importar
-                <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-              </label>
-              <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 transition">
-                <i className="fa-solid fa-file-export text-amber-400"></i> Exportar
+                <i className="fa-solid fa-chart-pie mr-2"></i>Histórico & Stats
               </button>
             </div>
           </header>
 
-          {/* TAB 1: CALENDAR VIEW */}
+          {/* Tab: Calendar */}
           {activeTab === 'calendar' && (
-            <main className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col gap-6">
-              {/* MONTH CONTROLS */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold font-serif text-slate-100">
-                    Mes de <span className="text-amber-400">{MONTHS[selectedMonth]}</span>
-                  </h2>
-                  <span className="text-xs bg-amber-500/10 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30">
-                    Multianual (Todos los años)
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setSelectedMonth(new Date().getMonth())} className="text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-2 rounded-xl border border-slate-700 font-semibold mr-2">
-                    Mes Actual
-                  </button>
-                  <button onClick={() => setSelectedMonth(prev => prev === 0 ? 11 : prev - 1)} className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
-                    <i className="fa-solid fa-chevron-left"></i>
-                  </button>
-                  <button onClick={() => setSelectedMonth(prev => prev === 11 ? 0 : prev + 1)} className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
-                    <i className="fa-solid fa-chevron-right"></i>
-                  </button>
-                </div>
+            <main>
+              <div className="flex items-center justify-between mb-6 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                <button 
+                  onClick={() => setSelectedMonth(prev => (prev === 0 ? 11 : prev - 1))}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium"
+                >
+                  <i className="fa-solid fa-chevron-left mr-1"></i> Anterior
+                </button>
+                <h2 className="text-xl font-bold text-amber-300">
+                  {MONTHS[selectedMonth]} <span className="text-xs text-slate-400 font-normal">(Todos los años)</span>
+                </h2>
+                <button 
+                  onClick={() => setSelectedMonth(prev => (prev === 11 ? 0 : prev + 1))}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium"
+                >
+                  Siguiente <i className="fa-solid fa-chevron-right ml-1"></i>
+                </button>
               </div>
 
-              {/* GRID OF DAYS (ICONOS MÁS GRANDES: 52px) */}
+              {/* Grilla Calendario con Iconos Más Grandes (64px) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
-                  const dayPulls = getRecordsForDay(day);
-                  const isCurrentDay = new Date().getDate() === day && new Date().getMonth() === selectedMonth;
-
+                  const dayRecords = getRecordsForDay(day);
                   return (
-                    <div
+                    <div 
                       key={day}
                       onClick={() => openDayModal(day)}
-                      className={`min-h-[135px] p-3 rounded-2xl border transition-all flex flex-col justify-between group relative cursor-pointer bg-slate-950/70 border-slate-800 hover:border-amber-500/60 hover:shadow-lg ${isCurrentDay ? 'ring-2 ring-amber-400 bg-amber-500/5' : ''}`}
+                      className="bg-slate-900/40 hover:bg-slate-800/60 border border-slate-800 hover:border-amber-500/50 rounded-xl p-3 min-h-[140px] cursor-pointer transition flex flex-col justify-between"
                     >
-                      <div className="flex justify-between items-center z-10">
-                        <span className={`text-sm font-bold ${isCurrentDay ? 'text-amber-400 font-extrabold' : 'text-slate-300'}`}>
-                          Día {day}
-                        </span>
-                        <span className="opacity-0 group-hover:opacity-100 text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">
-                          + Ver / Añadir
-                        </span>
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-2">
+                        <span className="text-sm text-slate-300">Día {day}</span>
+                        {dayRecords.length > 0 && (
+                          <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full text-[10px]">
+                            {dayRecords.length}
+                          </span>
+                        )}
                       </div>
 
-                      {/* CONTENEDOR DE ICONOS GRANDES (52px x 52px) */}
-                      <div className="flex flex-wrap gap-2 mt-2 z-10 max-h-[100px] overflow-y-auto">
-                        {dayPulls.map(pull => (
-                          <div
-                            key={pull.id}
-                            title={`${pull.name} (${pull.rarity}★) - ${pull.element} (${pull.year})`}
-                            className={`w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-2 overflow-hidden relative shadow-lg flex-shrink-0 transition-transform group-hover:scale-105 ${pull.rarity === 5 ? 'gold-border bg-amber-950/40' : 'purple-border bg-purple-950/40'}`}
+                      <div className="flex flex-wrap gap-2 items-center justify-center py-1">
+                        {dayRecords.map(rec => (
+                          <div 
+                            key={rec.id}
+                            className={`relative w-14 h-14 rounded-xl overflow-hidden border-2 transition transform hover:scale-110 ${rec.rarity === 5 ? 'border-amber-400 gold-glow' : 'border-purple-400 purple-glow'}`}
+                            title={`${rec.name} (${rec.element} - ${rec.year})`}
                           >
-                            <img src={pull.image} alt={pull.name} className="w-full h-full object-cover" />
-                            {/* Insignia de Año */}
-                            <span className="absolute bottom-0 inset-x-0 bg-slate-950/90 text-[9px] text-amber-300 font-extrabold text-center leading-tight py-0.5 border-t border-slate-800">
-                              '{String(pull.year).slice(2)}
+                            <img src={rec.image} alt={rec.name} className="w-full h-full object-cover" />
+                            <span className="absolute bottom-0 right-0 bg-slate-950/90 text-[9px] px-1 font-bold text-amber-300 border-tl rounded-tl">
+                              '{rec.year.toString().slice(-2)}
                             </span>
                           </div>
                         ))}
                       </div>
-
-                      {dayPulls.some(p => p.rarity === 5) && (
-                        <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 to-transparent pointer-events-none rounded-2xl" />
-                      )}
                     </div>
                   );
                 })}
@@ -335,281 +278,127 @@
             </main>
           )}
 
-          {/* TAB 2: HISTORICAL & FILTERS BY ELEMENT */}
+          {/* Tab: Stats & Full List */}
           {activeTab === 'stats' && (
-            <main className="flex flex-col gap-6">
-              {/* FILTER BAR BY ELEMENT & RARITY */}
-              <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                  <i className="fa-solid fa-filter"></i> Filtrar Histórico por Elemento y Rareza
-                </h3>
-                
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* ALL ELEMENTS BUTTON */}
-                  <button
-                    onClick={() => setFilterElement('ALL')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${filterElement === 'ALL' ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}`}
-                  >
-                    Todos los Elementos ({records.length})
-                  </button>
+            <main className="space-y-6">
+              {/* Tarjetas Principales */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
+                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Total Registrados</p>
+                  <p className="text-3xl font-extrabold text-amber-400">{records.length}</p>
+                </div>
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
+                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Personajes 5★</p>
+                  <p className="text-3xl font-extrabold text-amber-300">
+                    {records.filter(r => r.rarity === 5).length}
+                  </p>
+                </div>
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
+                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Personajes 4★</p>
+                  <p className="text-3xl font-extrabold text-purple-400">
+                    {records.filter(r => r.rarity === 4).length}
+                  </p>
+                </div>
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl text-center">
+                  <p className="text-slate-400 text-xs uppercase font-bold mb-1">Mes Favorito</p>
+                  <p className="text-lg font-bold text-amber-400">
+                    {bestMonthIndex !== null ? MONTHS[bestMonthIndex] : 'N/A'}
+                  </p>
+                  {bestMonthIndex !== null && (
+                    <p className="text-[10px] text-slate-400">{maxMonthCount} obtenidos en total</p>
+                  )}
+                </div>
+              </div>
 
-                  {/* ELEMENT BUTTONS */}
+              {/* Récord de Sequía */}
+              {droughtInfo && droughtInfo.maxDiffDays > 0 && (
+                <div className="bg-slate-900/80 border border-amber-500/30 p-5 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 text-xl font-bold">
+                      <i className="fa-solid fa-hourglass-half"></i>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300 uppercase">Mayor Racha de Sequía</h4>
+                      <p className="text-2xl font-extrabold text-amber-400">
+                        {droughtInfo.maxDiffDays} días sin personajes
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-6">
+                    <p className="text-xs text-slate-400">Rango de Fechas Exacto:</p>
+                    <p className="text-sm font-semibold text-slate-200">
+                      Del {droughtInfo.startDate.day} de {MONTHS[droughtInfo.startDate.month]} de {droughtInfo.startDate.year} 
+                      <span className="text-amber-400 mx-2 font-bold">➔</span> 
+                      al {droughtInfo.endDate.day} de {MONTHS[droughtInfo.endDate.month]} de {droughtInfo.endDate.year}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Desglose por Elementos & Años */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Distribución por Elemento */}
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
+                  <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Distribución por Elementos</h4>
                   {ELEMENTS.map(el => {
-                    const count = records.filter(r => r.element === el.name).length;
-                    const isActive = filterElement === el.name;
+                    const count = records.filter(r => r.element === el).length;
+                    const pct = records.length > 0 ? ((count / records.length) * 100).toFixed(0) : 0;
                     return (
-                      <button
-                        key={el.name}
-                        onClick={() => setFilterElement(el.name)}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${isActive ? `${el.bg} ${el.color} ${el.border} shadow-md ring-1 ring-amber-400` : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}`}
-                      >
-                        <i className={`fa-solid ${el.icon} ${el.color}`}></i>
-                        <span>{el.name}</span>
-                        <span className="bg-slate-900 px-1.5 py-0.5 rounded-md text-[10px] font-mono text-slate-300">{count}</span>
-                      </button>
+                      <div key={el} className="space-y-1">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-slate-300">{el}</span>
+                          <span className="text-slate-400">{count} ({pct}%)</span>
+                        </div>
+                        <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                          <div 
+                            className="bg-amber-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          ></div>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
 
-                {/* RARITY FILTERS */}
-                <div className="flex items-center gap-3 pt-2 border-t border-slate-800">
-                  <span className="text-xs text-slate-400">Rareza:</span>
-                  <button
-                    onClick={() => setFilterRarity('ALL')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold ${filterRarity === 'ALL' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    Todas
-                  </button>
-                  <button
-                    onClick={() => setFilterRarity('5')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold ${filterRarity === '5' ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50' : 'text-slate-400 hover:text-amber-300'}`}
-                  >
-                    ★ 5 Estrellas
-                  </button>
-                  <button
-                    onClick={() => setFilterRarity('4')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold ${filterRarity === '4' ? 'bg-purple-500/20 text-purple-300 border border-purple-400/50' : 'text-slate-400 hover:text-purple-300'}`}
-                  >
-                    ★ 4 Estrellas
-                  </button>
-                </div>
-              </div>
-
-              {/* LIST OF FILTERED CHARACTERS */}
-              <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold font-serif text-slate-100 flex items-center gap-2">
-                    <i className="fa-solid fa-list-check text-amber-400"></i>
-                    Resultados ({filteredRecords.length})
-                  </h3>
-                </div>
-
-                {filteredRecords.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500">
-                    <p className="text-sm">No hay ningún personaje registrado con los filtros seleccionados.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {filteredRecords.map(rec => {
-                      const elemConfig = ELEMENTS.find(e => e.name === rec.element) || ELEMENTS[0];
-                      return (
-                        <div
-                          key={rec.id}
-                          className={`flex items-center justify-between p-3.5 rounded-2xl border bg-slate-950 ${rec.rarity === 5 ? 'border-amber-500/40' : 'border-purple-500/40'}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <img src={rec.image} alt={rec.name} className={`w-12 h-12 rounded-xl object-cover border-2 ${rec.rarity === 5 ? 'border-amber-400' : 'border-purple-400'}`} />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-slate-100 text-sm">{rec.name}</h4>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${rec.rarity === 5 ? 'bg-amber-400/20 text-amber-300' : 'bg-purple-400/20 text-purple-300'}`}>
-                                  {rec.rarity}★
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
-                                <span className={elemConfig.color}>
-                                  <i className={`fa-solid ${elemConfig.icon} mr-1`}></i>{rec.element}
-                                </span>
-                                <span>•</span>
-                                <span>{rec.day} {MONTHS[rec.month]} ({rec.year})</span>
-                              </p>
-                            </div>
-                          </div>
-                          <button onClick={() => handleDelete(rec.id)} className="text-slate-500 hover:text-red-400 p-2">
-                            <i className="fa-solid fa-trash"></i>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </main>
-          )}
-
-          {/* MODAL DEL DÍA CON SELECTOR DE ELEMENTO PROMINENTE */}
-          {selectedDay !== null && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-slate-900 border border-amber-500/30 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                
-                {/* MODAL HEADER */}
-                <div className="bg-slate-800/80 px-6 py-4 border-b border-slate-700/60 flex justify-between items-center">
-                  <h3 className="text-lg font-bold font-serif text-slate-100">
-                    <i className="fa-solid fa-calendar-day text-amber-400 mr-2"></i>
-                    Historial del {selectedDay} de {MONTHS[selectedMonth]}
-                  </h3>
-                  <button onClick={() => setSelectedDay(null)} className="text-slate-400 hover:text-white">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-
-                <div className="p-6 overflow-y-auto space-y-6">
-                  {/* REGISTROS EXISTENTES DE ESTE DÍA */}
-                  {getRecordsForDay(selectedDay).length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-semibold uppercase text-slate-400">Obtenidos en este mismo día:</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {getRecordsForDay(selectedDay).map(pull => (
-                          <div key={pull.id} className={`p-3 rounded-2xl border flex items-center justify-between bg-slate-950 ${pull.rarity === 5 ? 'border-amber-500/40' : 'border-purple-500/40'}`}>
-                            <div className="flex items-center gap-3">
-                              <img src={pull.image} className="w-11 h-11 rounded-xl object-cover border border-slate-700" />
-                              <div>
-                                <p className="font-bold text-sm text-slate-100">{pull.name} <span className="text-xs text-amber-400">({pull.year})</span></p>
-                                <p className="text-xs text-slate-400">{pull.rarity}★ • {pull.element}</p>
-                              </div>
-                            </div>
-                            <div className="flex gap-1">
-                              <button onClick={() => handleEdit(pull)} className="p-2 text-slate-400 hover:text-amber-300"><i className="fa-solid fa-pen"></i></button>
-                              <button onClick={() => handleDelete(pull.id)} className="p-2 text-slate-400 hover:text-red-400"><i className="fa-solid fa-trash"></i></button>
-                            </div>
-                          </div>
-                        ))}
+                {/* Obtenciones por Año */}
+                <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
+                  <h4 className="text-sm font-bold text-amber-300 uppercase mb-2">Obtenciones por Año</h4>
+                  {Object.keys(yearCounts).length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">No hay datos suficientes aún.</p>
+                  ) : (
+                    Object.entries(yearCounts).sort((a,b) => b[0] - a[0]).map(([yr, count]) => (
+                      <div key={yr} className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <span className="font-bold text-amber-300 text-sm">Año {yr}</span>
+                        <span className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-bold">
+                          {count} personajes
+                        </span>
                       </div>
-                    </div>
+                    ))
                   )}
-
-                  {/* FORMULARIO DE REGISTRO / EDICIÓN */}
-                  <form onSubmit={handleSaveRecord} className="space-y-4 pt-4 border-t border-slate-800">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                      {editingId ? 'Editar Personaje' : 'Añadir Nuevo Personaje'}
-                    </h4>
-
-                    {/* SELECCIÓN RÁPIDA DE PLANTILLA */}
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1.5">Plantilla Rápida:</label>
-                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {PRESET_CHARS.map(c => (
-                          <button
-                            key={c.name}
-                            type="button"
-                            onClick={() => {
-                              setFormName(c.name);
-                              setFormRarity(c.rarity);
-                              setFormElement(c.element);
-                              setFormImage(c.icon);
-                            }}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-medium whitespace-nowrap"
-                          >
-                            <img src={c.icon} className="w-5 h-5 rounded-full object-cover" />
-                            <span>{c.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* SELECTOR DE FECHA (DÍA, MES, AÑO) */}
-                    <div className="grid grid-cols-3 gap-3 bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Día</label>
-                        <input type="number" min="1" max="31" value={formDay} onChange={e => setFormDay(e.target.value)} className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100" />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Mes</label>
-                        <select value={formMonth} onChange={e => setFormMonth(Number(e.target.value))} className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100">
-                          {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Año</label>
-                        <select value={formYear} onChange={e => setFormYear(Number(e.target.value))} className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-amber-400 font-bold">
-                          {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* NOMBRE Y RAREZA */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">Nombre del Personaje *</label>
-                        <input type="text" required placeholder="Ej: Furina" value={formName} onChange={e => setFormName(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-amber-500" />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">Rareza</label>
-                        <select value={formRarity} onChange={e => setFormRarity(Number(e.target.value))} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-amber-500">
-                          <option value={5}>5 Estrellas (5★)</option>
-                          <option value={4}>4 Estrellas (4★)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* SELECTOR DE ELEMENTO DESTACADO */}
-                    <div>
-                      <label className="block text-xs font-bold text-amber-300 mb-2">Elemento del Personaje *</label>
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                        {ELEMENTS.map(el => {
-                          const isSel = formElement === el.name;
-                          return (
-                            <button
-                              key={el.name}
-                              type="button"
-                              onClick={() => setFormElement(el.name)}
-                              className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${isSel ? `${el.bg} ${el.border} ${el.color} ring-2 ring-amber-400 scale-105 font-bold` : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}`}
-                            >
-                              <i className={`fa-solid ${el.icon} text-lg mb-1 ${el.color}`}></i>
-                              <span className="text-[10px]">{el.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* IMAGEN Y SUBIDA */}
-                    <div className="space-y-2">
-                      <label className="block text-xs text-slate-400">Imagen PNG del Personaje</label>
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0">
-                          {formImage ? <img src={formImage} className="w-full h-full object-cover" /> : <i className="fa-solid fa-image text-slate-600 text-xl"></i>}
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs text-slate-200 cursor-pointer transition">
-                            <i className="fa-solid fa-upload text-amber-400"></i> Subir Imagen desde mi PC (PNG/JPG)
-                            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* BOTONES */}
-                    <div className="flex justify-end gap-3 pt-4">
-                      {editingId && (
-                        <button type="button" onClick={() => resetForm(selectedDay)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">
-                          Cancelar Edición
-                        </button>
-                      )}
-                      <button type="submit" className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-500/20 transition">
-                        {editingId ? 'Guardar Cambios' : 'Registrar Personaje'}
-                      </button>
-                    </div>
-                  </form>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      );
-    }
 
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
-</body>
-</html>
+              {/* Filtros de Búsqueda */}
+              <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <h3 className="text-lg font-bold text-amber-300">Histórico de Personajes Guardados</h3>
+                  
+                  {/* Selectores de Filtro */}
+                  <div className="flex flex-wrap gap-2">
+                    <select 
+                      value={filterElement} 
+                      onChange={e => setFilterElement(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium"
+                    >
+                      <option value="Todos">Todos los Elementos</option>
+                      {ELEMENTS.map(el => <option key={el} value={el}>{el}</option>)}
+                    </select>
+
+                    <select 
+                      value={filterRarity} 
+                      onChange={e => setFilterRarity(e.target.value)}
+                      className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium"
+                    >
+                      <option value="Todas">Todas las Rarezas</option>
+                      <option value="5">5 Estrellas (5★)</option>
+                      <option value="4
