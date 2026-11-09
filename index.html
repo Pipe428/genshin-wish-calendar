@@ -159,22 +159,3 @@
       });
 
       const filteredRecords = sortedRecords.filter(r => {
-        return filterElement === 'Todos' || r.element === filterElement;
-      });
-
-      const calculateDrought = () => {
-        if (records.length < 2) return null;
-        const chronological = [...records].map(r => ({
-          ...r,
-          dateObj: new Date(r.year, r.month, r.day)
-        })).sort((a, b) => a.dateObj - b.dateObj);
-
-        let maxDiffDays = 0;
-        let startDate = null;
-        let endDate = null;
-
-        for (let i = 0; i < chronological.length - 1; i++) {
-          const current = chronological[i].dateObj;
-          const next = chronological[i + 1].dateObj;
-          const diffTime = next - current;
-          const diffDays = Math.
